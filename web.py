@@ -204,7 +204,7 @@ page2 = html.Div(style={"backgroundColor": "black"},children=[
         "textAlign": "center"
         }),
 ])
-sfds
+
 @app.callback(dash.dependencies.Output('page-content', 'children'),
               [dash.dependencies.Input('url', 'pathname')])     #callbak pro víc stránek
 def display_page(pathname):
@@ -215,28 +215,43 @@ def display_page(pathname):
     else:
         return index
 
+old_fig = None
 @app.callback(
     Output('chart-with-slider', 'figure'),
-    [Input('year-slider', 'value'),Input('interval-component-chart', 'n_intervals')]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
+    [Input('year-slider', 'value'),Input('interval-component-chart', 'n_intervals'),]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
 def update_figure(selected_time, n_interval):
-    data_frame = get_data("tweetTable")
-    data_frame_filtered = data_frame[data_frame.epoch > selected_time]
-    data_frame_filtered_scatter = data_frame.tail(30)
-    fig = px.scatter()
-    fig.add_scatter(x=data_frame_filtered_scatter["time"], y=data_frame_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame["tweet"])
-    fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_short"], mode="lines", name="1k tweets MA")
-    fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_long"], mode="lines", name="10k tweets MA")
-    fig.update_layout(title_text="xrp OR ripple",
-                        title_x=0.5,
-                        template="plotly_dark", 
-                        legend_title_text="", 
-                        legend_orientation="h", 
-                        legend=dict(x=0, y=1.1))
-    fig.update_layout(transition_duration=500)
-    print("Pocet tweetu v db: ", len(data_frame["time"]))
+    global old_fig
+    if n_interval % 2 == 1:
+        return old_fig
+    else:
+        data_frame = get_data("tweetTable")
+        data_frame_filtered = data_frame[data_frame.epoch > selected_time]
+        data_frame_filtered_scatter = data_frame.tail(30)
+        fig = px.scatter()
+        fig.add_scatter(x=data_frame_filtered_scatter["time"], y=data_frame_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame["tweet"])
+        fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_short"], mode="lines", name="1k tweets MA")
+        fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_long"], mode="lines", name="10k tweets MA")
+        fig.update_layout(title_text="xrp OR ripple",
+                            title_x=0.5,
+                            template="plotly_dark", 
+                            legend_title_text="", 
+                            legend_orientation="h", 
+                            legend=dict(x=0, y=1.1))
+        fig.update_layout(transition_duration=500)
+        #print("Pocet tweetu v db: ", len(data_frame["time"]))
+        old_fig = fig
+        return fig
 
-    return fig
-
+old_data = get_data("tweetTable").to_dict("records")
+@app.callback(dash.dependencies.Output('table', 'data'),
+              [dash.dependencies.Input('interval-component-chart', 'n_intervals')])
+def update_table(n_interval):
+    global old_data
+    if n_interval % 2 == 1:
+        old_data = get_data("tweetTable").to_dict('records')
+        return old_data
+    else:
+        return old_data
     
 if __name__ == '__main__':
     app.run_server(debug=True, host="192.168.1.150")
