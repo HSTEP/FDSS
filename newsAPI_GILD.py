@@ -42,4 +42,4 @@ def gild_news():
         kody.cnx.commit()
 while True:
     gild_news()
-    time.sleep(3600)
+    time.sleep(1200)

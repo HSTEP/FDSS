@@ -29,9 +29,7 @@ data_frame_news = pd.read_sql('SELECT source, published, title, url, sentiment F
 data_frame_news["ma_short"] = data_frame_news.sentiment.rolling(window=5).mean()
 data_frame_news["ma_long"] = data_frame_news.sentiment.rolling(window=10).mean()
 data_frame_news['epoch'] = data_frame_news['published'].astype(np.int64)
-data_frame_for_news = data_frame_news
 #data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu    
-print(data_frame_for_news)
 
 def get_data(table_name):
     data_frame = pd.read_sql('SELECT time, username, tweet, followers,  sentiment FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
@@ -67,6 +65,7 @@ index = html.Div(style={"backgroundColor": "black"},children=[
         "color": colors["text"],
         "textAlign": "center"
         }),
+    html.Button(html.A('GitHub Code', href='https://github.com/HSTEP/twitter_sentiment', target='_blank'), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
 ])
 
 twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, children=[
@@ -88,7 +87,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
         id='year-slider',
         min=1593560870000000000,
         max=time.time()*10**9,
-        value=1593560870000000000,
+        value=time.time()*10**9 - 259200*10**9,
         #value=(time.time()-50400)*30**9,
         ),
     dcc.Interval(
@@ -218,7 +217,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         id='year-slider',
         min=1594412760000000000,
         max=time.time()*10**9,
-        value=1593560870000000000,
+        value=time.time()*10**9 - 259200*10**9,
         #value=(time.time()-50400)*30**9,
         ),
     ]),
@@ -345,13 +344,12 @@ def update_table(n_interval):
     Output('chart-with-slider-news', 'figure'),
     [Input('year-slider', 'value'),]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
 def update_news_figure(selected_time):
-    data_frame_news = data_frame_for_news.to_dict('records')
-    data_frame_news_filtered = data_frame_for_news[data_frame_for_news.epoch > selected_time]
-    data_frame_news_filtered_scatter = data_frame_for_news.tail(100) #zobrazí posledních n-tweetů v grafu jako body*
+    data_frame_news_filtered = data_frame_news[data_frame_news.epoch > selected_time]
+    data_frame_news_filtered_scatter = data_frame_news.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
     fig_newsGILD = px.scatter()
-    fig_newsGILD.add_scatter(x=data_frame_news_filtered_scatter["published"], y=data_frame_news_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_for_news["title"]) #*
-    fig_newsGILD.add_scatter(x=data_frame_news_filtered["published"], y=data_frame_for_news["ma_short"], mode="lines", name="Short MA")
-    fig_newsGILD.add_scatter(x=data_frame_news_filtered["published"], y=data_frame_for_news["ma_long"], mode="lines", name="Long MA")
+    fig_newsGILD.add_scatter(x=data_frame_news_filtered["published"], y=data_frame_news_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_news["title"]) #*
+    fig_newsGILD.add_scatter(x=data_frame_news_filtered["published"], y=data_frame_news["ma_short"], mode="lines", name="Short MA")
+    fig_newsGILD.add_scatter(x=data_frame_news_filtered["published"], y=data_frame_news["ma_long"], mode="lines", name="Long MA")
     fig_newsGILD.update_layout(title_text="GILD OR Gilead OR Remdesivir - newsAPI",
                         title_x=0.5,
                         template="plotly_dark", 
