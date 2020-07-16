@@ -88,7 +88,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
         min=1593560870000000000,
         max=time.time()*10**9,
         value=time.time()*10**9 - 259200*10**9,
-        #value=(time.time()-50400)*30**9,
+        step=86400*10**9,
         ),
     dcc.Interval(
             id='interval-component-chart',
@@ -218,9 +218,12 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         min=1594412760000000000,
         max=time.time()*10**9,
         value=time.time()*10**9 - 259200*10**9,
-        #value=(time.time()-50400)*30**9,
+        step=86400*10**9,
         ),
-    ]),
+    ], style={'width': '79%', 'display': 'inline-block'}),
+
+    html.Div(html.Img(src=app.get_asset_url('wordcloud_news_gild.png'), height = "500px"),style={'width': '19%', 'display': 'inline-block'}),
+
     html.Div(dash_table.DataTable(
         id="table",
         columns=[{

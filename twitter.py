@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 import re
 from textblob import TextBlob
+import time
 
 auth = tweepy.OAuthHandler(kody.API_key, kody.API_secret_key)
 auth.set_access_token(kody.Access_token, kody.Access_token_secret)
@@ -85,7 +86,12 @@ for tweet in tweets_search:
     print(tweet.author.screen_name, clean_tweet(tweet_searched), tweet.created_at)
 
 if __name__ == "__main__":
-    twitterStream = tweepy.Stream(auth, listener(), tweet_mode='extended')
-    twitterStream.filter(track=words,
-      languages = ["en"], stall_warnings = True) #čárka = OR; mezera = AND
+    while True:
+        try:
+            twitterStream = tweepy.Stream(auth, listener(), tweet_mode='extended')
+            twitterStream.filter(track=words,
+            languages = ["en"], stall_warnings = True) #čárka = OR; mezera = AND
+        finally:
+            print("Twitter Error")
+            time.sleep(30)
 
