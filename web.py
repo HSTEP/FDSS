@@ -40,10 +40,6 @@ def get_data(table_name):
     data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu
     return data_frame
 
-now_minus_one_hour = dt.now() - relativedelta(hours=1)
-data_frame_is_it_running = pd.read_sql('SELECT script, time FROM running_scripts ORDER BY time ASC', con=kody.cnx)
-data_frame_is_it_running["status"] = np.where(data_frame_is_it_running["time"] > now_minus_one_hour, "YES","NO")
-
 gild = yf.download("GILD")
 data_gild = pd.DataFrame(data=gild)
 
@@ -56,6 +52,10 @@ fig_gild.update_layout(title_text="GILD stock price",
                     legend_orientation="h", 
                     legend=dict(x=0, y=1))
 
+now_minus_one_hour = dt.now() - relativedelta(hours=1)
+data_frame_is_it_running = pd.read_sql('SELECT script, time FROM running_scripts ORDER BY time ASC', con=kody.cnx)
+data_frame_is_it_running["status"] = np.where(data_frame_is_it_running["time"] > now_minus_one_hour, "YES","NO")
+
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content')
@@ -64,7 +64,7 @@ app.layout = html.Div([
 index = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
-    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
     html.H1(
     children='index',
     style={
@@ -79,7 +79,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
     html.Div(id='page-1-content'),
     html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
-    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),    
+    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
     html.H1(
     children='Twitter sentiment',
     style={
@@ -211,7 +211,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
     html.Div(id='page-2-content'),
     html.Button(dcc.Link('index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
-    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
     html.H1(children='GILD Sentiment',
         style=
         {
@@ -312,7 +312,7 @@ running_scripts = html.Div(style={"backgroundColor": "black"},children=[
         "textAlign": "center"
         }),
     html.Div(dash_table.DataTable(
-        id="table",
+        id="table_running_scripts",
         columns=[{
             "id" : "script",
             "name" : "Script",
@@ -333,7 +333,7 @@ running_scripts = html.Div(style={"backgroundColor": "black"},children=[
         data=data_frame_is_it_running.to_dict('records'),
         fixed_rows={ 'headers': True, 'data': 0 },
         sort_action="native",
-        page_size= 10,
+        page_size= 5,
         style_header={
             "fontWeight" : "bold",
             "textAlign" : "center"
@@ -363,6 +363,8 @@ running_scripts = html.Div(style={"backgroundColor": "black"},children=[
             'if': {'column_id':'status'},
             'width':'90px'    
             },
+        ],
+        style_data_conditional=[
             {
             'if': {'filter_query': '{status} = YES', 'column_id': 'status'},
             "color" : colors["button_text"],
@@ -370,14 +372,19 @@ running_scripts = html.Div(style={"backgroundColor": "black"},children=[
             }
         ],
         style_as_list_view=True,
-        virtualization=True,
+        #virtualization=True,
         page_action="none"
         ),style={
-            "width": "48%",
-            "margin-left": "auto",
-            "margin-right": "auto",
+            #"width": "48%",
+            "margin-left": "20px",
+            "margin-right": "20px",
             #"display": "inline-block"
             }),
+    dcc.Interval(
+        id='interval-component-iir',
+        interval=10*1000, # in milliseconds
+        n_intervals=0
+    ) 
 ])
 
 @app.callback(dash.dependencies.Output('page-content', 'children'),
@@ -449,6 +456,15 @@ def update_news_figure(selected_time):
     fig_newsGILD.update_layout(transition_duration=500)
     #print("Pocet tweetu v db: ", len(data_frame["time"]))
     return fig_newsGILD
-    
+
+@app.callback(dash.dependencies.Output('table_running_scripts', 'data'),
+              [dash.dependencies.Input('interval-component-iir', 'n_intervals')])
+def update_is_it_running(n_intervals):
+    now_minus_one_hour = dt.now() - relativedelta(hours=1)
+    data_frame_is_it_running = pd.read_sql('SELECT script, time FROM running_scripts ORDER BY time ASC', con=kody.cnx)
+    data_frame_is_it_running["status"] = np.where(data_frame_is_it_running["time"] > now_minus_one_hour, "YES","NO")
+    data_frame_is_it_running = data_frame_is_it_running.to_dict('records')
+    return data_frame_is_it_running
+
 if __name__ == '__main__':
     app.run_server(debug=True, host="192.168.1.150")
