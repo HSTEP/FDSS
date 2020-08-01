@@ -26,10 +26,10 @@ colors = {
     "button_border" : "1px solid #ff8000",
 }
 
-data_frame_news = pd.read_sql('SELECT source, published, title, url, sentiment FROM newsGILD ORDER BY published ASC', con=kody.cnx)
-data_frame_news["ma_short"] = data_frame_news.sentiment.rolling(window=5).mean()
-data_frame_news["ma_long"] = data_frame_news.sentiment.rolling(window=10).mean()
-data_frame_news['epoch'] = data_frame_news['published'].astype(np.int64)
+data_frame_newsGILD = pd.read_sql('SELECT source, published, title, url, sentiment FROM newsGILD ORDER BY published ASC', con=kody.cnx)
+data_frame_newsGILD["ma_short"] = data_frame_newsGILD.sentiment.rolling(window=5).mean()
+data_frame_newsGILD["ma_long"] = data_frame_newsGILD.sentiment.rolling(window=10).mean()
+data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
 #data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu    
 
 def get_data(table_name):
@@ -179,32 +179,32 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
         interval=1000
     ),
 
-    # html.Iframe(srcDoc='''
-    # <div class="tradingview-widget-container">
-    # <div id="tradingview_20db9"></div>
-    # <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/NASDAQ-AAPL/" rel="noopener" #target="_blank"><span class="blue-text">AAPL Chart</span></a> by TradingView</div>
-    # <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    # <script type="text/javascript">
-    # new TradingView.widget(
-    # {
-    # "height": 700,
-    # "width" : 900,
-    # "symbol": "NASDAQ:GILD",
-    # "interval": "D",
-    # "timezone": "Etc/UTC",
-    # "theme": "dark",
-    # "style": "1",
-    # "locale": "en",
-    # "toolbar_bg": "#f1f3f6",
-    # "enable_publishing": false,
-    # "allow_symbol_change": true,
-    # "container_id": "tradingview_20db9"               source, published, title, url, sentiment
-    # }
-    # );
-    # </script>''', style={
-    #                 "height": 700,
-    #                 "width" : 900
-    #                 })
+        # html.Iframe(srcDoc='''
+        # <div class="tradingview-widget-container">
+        # <div id="tradingview_20db9"></div>
+        # <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/symbols/NASDAQ-AAPL/" rel="noopener" #target="_blank"><span class="blue-text">AAPL Chart</span></a> by TradingView</div>
+        # <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+        # <script type="text/javascript">
+        # new TradingView.widget(
+        # {
+        # "height": 700,
+        # "width" : 900,
+        # "symbol": "NASDAQ:GILD",
+        # "interval": "D",
+        # "timezone": "Etc/UTC",
+        # "theme": "dark",
+        # "style": "1",
+        # "locale": "en",
+        # "toolbar_bg": "#f1f3f6",
+        # "enable_publishing": false,
+        # "allow_symbol_change": true,
+        # "container_id": "tradingview_20db9"               source, published, title, url, sentiment
+        # }
+        # );
+        # </script>''', style={
+        #                 "height": 700,
+        #                 "width" : 900
+        #                 })
 ])
 
 GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
@@ -218,8 +218,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         "color": colors["text"],
         "textAlign": "center"
         }),
-    html.Div([
-        dcc.Graph(id='chart-with-slider-news'),
+    html.Div([dcc.Graph(id='chart-with-slider-news'),
         dcc.Slider(
         id='year-slider',
         min=1594412760000000000,
@@ -232,7 +231,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
     html.Div(html.Img(src=app.get_asset_url('wordcloud_news_gild.svg'), height = "500px"),style={'width': '29%', 'display': 'inline-block'}),
 
     html.Div(dash_table.DataTable(
-        id="table",
+        id="table_newsGILD",
         columns=[{
             "id" : "source",
             "name" : "Source",
@@ -261,7 +260,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         filter_action='native',
         css=[{'selector': '.dash-filter > input', 'rule': 'color: #01ff70; text-align : left'}],
         style_filter={"backgroundColor" : "#663300"}, #styly filtrů fungujou divně proto je zbytek přímo v css
-        data=data_frame_news.to_dict('records'),
+        data=data_frame_newsGILD.to_dict('records'),
         fixed_rows={ 'headers': True, 'data': 0 },
         sort_action="native",
         page_size= 10,
@@ -299,6 +298,11 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             #"align": "right",
             #"display": "inline-block"
             }),
+    dcc.Interval(
+        id='interval-component-newsGILD',
+        interval=3600*1000, # in milliseconds
+        n_intervals=0
+    )
 ])
 
 running_scripts = html.Div(style={"backgroundColor": "black"},children=[
@@ -387,6 +391,7 @@ running_scripts = html.Div(style={"backgroundColor": "black"},children=[
     ) 
 ])
 
+#--------------------callback pro otevření cesty k jiné Dash stránce--------------------
 @app.callback(dash.dependencies.Output('page-content', 'children'),
               [dash.dependencies.Input('url', 'pathname')])     #callbak pro víc stránek
 def display_page(pathname):
@@ -399,6 +404,7 @@ def display_page(pathname):
     else:
         return index
 
+#--------------------callback pro update grafu z MySQL tweetTable-----------------------
 old_fig = None
 @app.callback(
     Output('chart-with-slider', 'figure'),
@@ -426,6 +432,7 @@ def update_figure(selected_time, n_interval):
         old_fig = fig
         return fig
 
+#--------------------callback pro update tabulky z MySQL tweetTable---------------------
 old_data = get_data("tweetTable").to_dict("records")
 @app.callback(dash.dependencies.Output('table', 'data'),
               [dash.dependencies.Input('interval-component-chart', 'n_intervals')])
@@ -437,26 +444,51 @@ def update_table(n_interval):
     else:
         return old_data
 
+#--------------------callback pro update grafu z MySQL newsGILD-----------------------
+
+#--------------------callback pro update tabulky z MySQL newsGILD---------------------
+old_data_newsGILD = data_frame_newsGILD.to_dict('records')
+@app.callback(dash.dependencies.Output('table_newsGILD', 'data'),
+              [dash.dependencies.Input('interval-component-newsGILD', 'n_intervals')])
+def update_is_it_running(n_interval):
+    global old_data_newsGILD
+    if n_interval % 2 == 1:
+        data_frame_newsGILD = pd.read_sql('SELECT source, published, title, url, sentiment FROM newsGILD ORDER BY published ASC', con=kody.cnx)
+        data_frame_newsGILD["ma_short"] = data_frame_newsGILD.sentiment.rolling(window=5).mean()
+        data_frame_newsGILD["ma_long"] = data_frame_newsGILD.sentiment.rolling(window=10).mean()
+        data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
+        data_frame_newsGILD = data_frame_newsGILD.to_dict('records')
+        return data_frame_newsGILD
+    else:
+        return old_data_newsGILD
+
+#--------------------callback pro update grafu podle pozice slideru---------------------
+old_fig_newsGILD = None
 @app.callback(
     Output('chart-with-slider-news', 'figure'),
-    [Input('year-slider', 'value'),]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
-def update_news_figure(selected_time):
-    data_frame_news_filtered = data_frame_news[data_frame_news.epoch > selected_time]
-    data_frame_news_filtered_scatter = data_frame_news.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
-    fig_newsGILD = px.scatter()
-    fig_newsGILD.add_scatter(x=data_frame_news_filtered["published"], y=data_frame_news_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_news["title"]) #*
-    fig_newsGILD.add_scatter(x=data_frame_news_filtered["published"], y=data_frame_news["ma_short"], mode="lines", name="Short MA")
-    fig_newsGILD.add_scatter(x=data_frame_news_filtered["published"], y=data_frame_news["ma_long"], mode="lines", name="Long MA")
-    fig_newsGILD.update_layout(title_text="GILD OR Gilead OR Remdesivir - newsAPI",
-                        title_x=0.5,
-                        template="plotly_dark", 
-                        legend_title_text="", 
-                        legend_orientation="h", 
-                        legend=dict(x=0, y=1.1))
-    fig_newsGILD.update_layout(transition_duration=500)
-    #print("Pocet tweetu v db: ", len(data_frame["time"]))
-    return fig_newsGILD
+    [Input('year-slider', 'value'),Input('interval-component-newsGILD','n_intervals')]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
+def update_news_figure(selected_time, n_interval):
+    global old_fig_newsGILD
+    if n_interval % 2==1:
+        return old_fig_newsGILD
+    else:
+        data_frame_newsGILD_filtered = data_frame_newsGILD[data_frame_newsGILD.epoch > selected_time]
+        data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
+        fig_newsGILD = px.scatter()
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD["title"]) #*
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD["ma_short"], mode="lines", name="Short MA")
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD["ma_long"], mode="lines", name="Long MA")
+        fig_newsGILD.update_layout(title_text="GILD OR Gilead OR Remdesivir - newsAPI",
+                            title_x=0.5,
+                            template="plotly_dark", 
+                            legend_title_text="", 
+                            legend_orientation="h", 
+                            legend=dict(x=0, y=1.1))
+        fig_newsGILD.update_layout(transition_duration=500)
+        #print("Pocet tweetu v db: ", len(data_frame["time"]))
+        return fig_newsGILD
 
+#--------------------callback pro update tabulky z MySQL running_scripts----------------
 @app.callback(dash.dependencies.Output('table_running_scripts', 'data'),
               [dash.dependencies.Input('interval-component-iir', 'n_intervals')])
 def update_is_it_running(n_intervals):
