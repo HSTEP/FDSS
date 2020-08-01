@@ -57,6 +57,7 @@ class listener(tweepy.streaming.StreamListener):
 
             #print(all_data["retweeted"], all_data["truncated"])
             print((username, raw_tweet))
+            is_it_running()
             return True
 
     def on_error(self, status_code):
@@ -84,6 +85,14 @@ for tweet in tweets_search:
                 (tweet.created_at, tweet.author.screen_name, clean_tweet(tweet_searched), tweet.author.followers_count, searched_sentiment))
         kody.cnx.commit() 
     print(tweet.author.screen_name, clean_tweet(tweet_searched), tweet.created_at)
+
+def is_it_running():
+    script_name = "twitter.py"
+    now = datetime.now().isoformat()
+    cursor.execute(
+            "UPDATE running_scripts SET script = %s, time = %s WHERE script = %s",
+            (script_name, now, script_name))
+    kody.cnx.commit()
 
 if __name__ == "__main__":
     while True:

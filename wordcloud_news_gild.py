@@ -2,17 +2,26 @@ import multidict as multidict
 
 import numpy as np
 import pandas as pd
-import kody
 
 import os
 import re
 from PIL import Image
 from os import path
 from wordcloud import WordCloud
+import matplotlib
 import matplotlib.pyplot as plt
 from plotly.tools import mpl_to_plotly
 import random
 import time
+import sys
+
+import kody
+from datetime import datetime
+import time
+
+cursor=kody.cnx.cursor()
+
+newsAPI_key = ('2ddb01e2cdd245c3bb5d57eae5747880')
 
 def grey_color_func(word, font_size, position, orientation, random_state=None,
                     **kwargs):
@@ -20,7 +29,7 @@ def grey_color_func(word, font_size, position, orientation, random_state=None,
 
 def get_data(table_name):
     #table_name="tweetTable"
-    data_xrp = pd.read_sql('SELECT title FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
+    data_xrp = pd.read_sql('SELECT title, published FROM '+ table_name +' ORDER BY published ASC', con=kody.cnx)
     return data_xrp
 
 
@@ -49,10 +58,20 @@ def makeImage(text):
     # show
     plt.imshow(wc.recolor(color_func=grey_color_func, random_state=3), interpolation="bilinear")
     plt.axis("off")
-    plt.savefig("assets/wordcloud_news_gild", dpi = 150, bbox_inches='tight',facecolor='black', edgecolor='black')
+    plt.savefig("assets/wordcloud_news_gild", dpi = 300, bbox_inches='tight',facecolor='black', edgecolor='black')
+
+def is_it_running():
+    script_name = "wordcloud_news_gild.py"
+    now = datetime.now().isoformat()
+    cursor.execute(
+            "UPDATE running_scripts SET script = %s, time = %s WHERE script = %s",
+            (script_name, now, script_name))
+    kody.cnx.commit()
 
 while True:
-    tweets_list = ' '.join(get_data("newsGILD")["title"].tolist())
-    text = tweets_list
+    matplotlib.use('SVG')
+    text = ' '.join(get_data("newsGILD")["title"].tolist())
     makeImage(getFrequencyDictForText(text))
-    time.sleep(15)
+    is_it_running()
+    print(datetime.now().isoformat())
+    time.sleep(3600)

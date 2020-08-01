@@ -12,6 +12,7 @@ import datetime
 import yfinance as yf
 import numpy as np
 import time
+from dateutil.relativedelta import relativedelta
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True) #jinak callback nefunguje u multipage apps
 server = app.server
@@ -39,6 +40,10 @@ def get_data(table_name):
     data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu
     return data_frame
 
+now_minus_one_hour = dt.now() - relativedelta(hours=1)
+data_frame_is_it_running = pd.read_sql('SELECT script, time FROM running_scripts ORDER BY time ASC', con=kody.cnx)
+data_frame_is_it_running["status"] = np.where(data_frame_is_it_running["time"] > now_minus_one_hour, "YES","NO")
+
 gild = yf.download("GILD")
 data_gild = pd.DataFrame(data=gild)
 
@@ -59,6 +64,7 @@ app.layout = html.Div([
 index = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.H1(
     children='index',
     style={
@@ -73,7 +79,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
     html.Div(id='page-1-content'),
     html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
-    
+    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),    
     html.H1(
     children='Twitter sentiment',
     style={
@@ -203,8 +209,9 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
 
 GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
     html.Div(id='page-2-content'),
-    html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.H1(children='GILD Sentiment',
         style=
         {
@@ -220,9 +227,9 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         value=time.time()*10**9 - 259200*10**9,
         step=86400*10**9,
         ),
-    ], style={'width': '79%', 'display': 'inline-block'}),
+    ], style={'width': '69%', 'display': 'inline-block'}),
 
-    html.Div(html.Img(src=app.get_asset_url('wordcloud_news_gild.png'), height = "500px"),style={'width': '19%', 'display': 'inline-block'}),
+    html.Div(html.Img(src=app.get_asset_url('wordcloud_news_gild.svg'), height = "500px"),style={'width': '29%', 'display': 'inline-block'}),
 
     html.Div(dash_table.DataTable(
         id="table",
@@ -292,7 +299,85 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             #"align": "right",
             #"display": "inline-block"
             }),
-    
+])
+
+running_scripts = html.Div(style={"backgroundColor": "black"},children=[
+    html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.H1(
+    children='Running Scripts',
+    style={
+        "color": colors["text"],
+        "textAlign": "center"
+        }),
+    html.Div(dash_table.DataTable(
+        id="table",
+        columns=[{
+            "id" : "script",
+            "name" : "Script",
+            "type" : "text"
+            },{
+            "id" : "time",
+            "name" : "Last Update",
+            "type" : "datetime"
+            },{
+            "id" : "status",
+            "name" : "Updated Last Hour",
+            "type" : "text"
+            }],
+
+        #filter_action='native',
+        css=[{'selector': '.dash-filter > input', 'rule': 'color: #01ff70; text-align : left'}],
+        #style_filter={"backgroundColor" : "#663300"}, #styly filtrů fungujou divně proto je zbytek přímo v css
+        data=data_frame_is_it_running.to_dict('records'),
+        fixed_rows={ 'headers': True, 'data': 0 },
+        sort_action="native",
+        page_size= 10,
+        style_header={
+            "fontWeight" : "bold",
+            "textAlign" : "center"
+        },
+        style_cell={
+            "textAlign" : "left",
+            "backgroundColor" : colors["background"],
+            "color" : colors["text"],
+
+        },
+        style_data={
+        'whiteSpace': 'normal',
+        'height': 'auto',
+        'maxWidth': '500px',
+        'minWidth': '100px',
+        },
+        style_cell_conditional=[
+            {
+            'if': {'column_id': 'script'},
+            'width': '90px'
+            },
+            {
+            'if': {'column_id': 'time'},
+            'width': '90px'
+            },
+            {
+            'if': {'column_id':'status'},
+            'width':'90px'    
+            },
+            {
+            'if': {'filter_query': '{status} = YES', 'column_id': 'status'},
+            "color" : colors["button_text"],
+            "textAlign":"center"
+            }
+        ],
+        style_as_list_view=True,
+        virtualization=True,
+        page_action="none"
+        ),style={
+            "width": "48%",
+            "margin-left": "auto",
+            "margin-right": "auto",
+            #"display": "inline-block"
+            }),
 ])
 
 @app.callback(dash.dependencies.Output('page-content', 'children'),
@@ -302,6 +387,8 @@ def display_page(pathname):
         return twitter_sentiment
     elif pathname == '/GILD_sentiment':
         return GILD_sentiment
+    elif pathname =='/running_scripts':
+        return running_scripts
     else:
         return index
 

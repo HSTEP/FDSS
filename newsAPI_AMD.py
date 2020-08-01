@@ -16,8 +16,8 @@ time_to = dt.datetime.now().replace(microsecond=0).isoformat()
 
 print(time_from, time_to)
 
-def gild_news():
-    all_articles = newsapi.get_everything(qintitle='GILD OR gilead OR remdesivir',   #(ethereum OR litecoin) NOT bitcoin #qintitle nebo q - všude
+def amd_news():
+    all_articles = newsapi.get_everything(qintitle='AMD',   #(ethereum OR litecoin) NOT bitcoin #qintitle nebo q - všude
                                       #sources='associated-press, bbc-news, bloomberg, business-insider, cbc-news, cnn, engadget, financial-post, fortune, fox-news, google-news, hacker-news, recode, reuters, techcrunch, the-next-web, the-verge, the-wall-street-journal, the-washington-post, the-washington-times, time, wired',
                                       #domains='bbc.co.uk,techcrunch.com',
                                       from_param= time_from,  #ISO 8601 format
@@ -35,15 +35,15 @@ def gild_news():
         sentiment = TextBlob(article["title"]).polarity
         new_published_at = datetime.strftime(datetime.strptime(published_at, '%Y-%m-%dT%H:%M:%SZ'),
                                                  '%Y-%m-%d %H:%M:%S')
-        #print(source, published_at, title, url, sentiment)
+        #print(source, published_at, title, url, sentiment, content)
 
         cursor.execute(
-                "INSERT INTO newsGILD (source, published, title, url, sentiment) SELECT * FROM (SELECT %s,%s,%s,%s,%s) AS tmp WHERE NOT EXISTS (SELECT title FROM newsGILD WHERE title = %s) LIMIT 1",
+                "INSERT INTO newsAMD (source, published, title, url, sentiment) SELECT * FROM (SELECT %s,%s,%s,%s,%s) AS tmp WHERE NOT EXISTS (SELECT title FROM newsGILD WHERE title = %s) LIMIT 1",
                 (source, new_published_at, title, url, sentiment, title))
         kody.cnx.commit()
 
 def is_it_running():
-    script_name = "newsAPI_GILD.py"
+    script_name = "newsAPI_AMD.py"
     now = datetime.now().isoformat()
     cursor.execute(
             "UPDATE running_scripts SET script = %s, time = %s WHERE script = %s",
@@ -51,7 +51,7 @@ def is_it_running():
     kody.cnx.commit()
 
 while True:
-    gild_news()
+    amd_news()
     is_it_running()
     print(datetime.now().isoformat())
     time.sleep(3600)
