@@ -32,6 +32,16 @@ data_frame_newsGILD["ma_long"] = data_frame_newsGILD.sentiment.rolling(window=10
 data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
 #data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu    
 
+def display_links(data_frame_newsGILD):
+    links = data_frame_newsGILD['url'].to_list()
+    rows = []
+    for x in links:
+        link = '[' +str(x) + '](' +str(x) + ')'
+        rows.append(link)
+    return rows
+data_frame_newsGILD['url'] = display_links(data_frame_newsGILD)
+print(data_frame_newsGILD["url"])
+
 def get_data(table_name):
     data_frame = pd.read_sql('SELECT time, username, tweet, followers,  sentiment FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
     data_frame["ma_short"] = data_frame.sentiment.rolling(window=1000).mean()
@@ -247,7 +257,8 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             },{
             "id" : "url",
             "name" : "url",
-            "type" : "text"
+            "type" : "text",
+            "presentation" : "markdown"
             },{
             "id" : "sentiment",
             "name" : "Sentiment",
@@ -444,9 +455,7 @@ def update_table(n_interval):
     else:
         return old_data
 
-#--------------------callback pro update grafu z MySQL newsGILD-----------------------
-
-#--------------------callback pro update tabulky z MySQL newsGILD---------------------
+#--------------------callback pro update tabulky z MySQL newsGILD-----------------------
 old_data_newsGILD = data_frame_newsGILD.to_dict('records')
 @app.callback(dash.dependencies.Output('table_newsGILD', 'data'),
               [dash.dependencies.Input('interval-component-newsGILD', 'n_intervals')])
@@ -462,7 +471,7 @@ def update_is_it_running(n_interval):
     else:
         return old_data_newsGILD
 
-#--------------------callback pro update grafu podle pozice slideru---------------------
+#--------------------callback pro update grafu z MYSQL newsGILD-------------------------
 old_fig_newsGILD = None
 @app.callback(
     Output('chart-with-slider-news', 'figure'),
