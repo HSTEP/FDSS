@@ -44,12 +44,15 @@ data_frame_newsGILD['url'] = display_links(data_frame_newsGILD)
 print(data_frame_newsGILD["url"])
 
 def get_data(table_name):
-    data_frame = pd.read_sql('SELECT time, username, tweet, followers,  sentiment FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
+    data_frame = pd.read_sql('SELECT time, username, tweet, followers,  sentiment, sentiment_vader FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
     data_frame["ma_short"] = data_frame.sentiment.rolling(window=1000).mean()
     data_frame["ma_long"] = data_frame.sentiment.rolling(window=10000).mean()
+    data_frame["vader_ma_short"] = data_frame.sentiment_vader.rolling(window=10).mean()
+    data_frame["vader_ma_long"] = data_frame.sentiment_vader.rolling(window=100).mean()    
     data_frame['epoch'] = data_frame['time'].astype(np.int64)
     data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu
     return data_frame
+print(get_data("tweetTable")["vader_ma_short"])
 
 gild = yf.download("GILD")
 data_gild = pd.DataFrame(data=gild)
@@ -105,10 +108,12 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                 id = 'sentiment_ma',
                 options = [
                     {"label" : "Long MA TextBlob", "value" : "long_ma"},
-                    {"label" : "Short MA TextBlob", "value" : "short_ma"}
+                    {"label" : "Short MA TextBlob", "value" : "short_ma"},
+                    {"label" : "Long MA Vader", "value" : "vader_ma_long"},
+                    {"label" : "Short MA Vader", "value" : "vader_ma_short"}
                 ],
                 value = ["long_ma"],
-                labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"]}
+                labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
             ),
         ],
     ),
@@ -452,12 +457,16 @@ def update_figure(selected_time, n_interval, selector):
             fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_short"], mode="lines", name="1k tweets MA")
         if "long_ma" in selector:    
             fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_long"], mode="lines", name="10k tweets MA")
+        if "vader_ma_short" in selector:
+            fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["vader_ma_short"], mode="lines", name="10 tweets MA Vader")
+        if "vader_ma_long" in selector:    
+            fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["vader_ma_long"], mode="lines", name="100 tweets MA Vader")                    
         fig.update_layout(title_text="xrp OR ripple",
                             title_x=0.5,
                             template="plotly_dark", 
                             legend_title_text="", 
                             legend_orientation="h", 
-                            legend=dict(x=0, y=1.1))
+                            legend=dict(x=0, y=-1.2))
         fig.update_layout(transition_duration=500)
         #print("Pocet tweetu v db: ", len(data_frame["time"]))
         old_fig = fig
