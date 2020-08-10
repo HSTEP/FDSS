@@ -13,6 +13,7 @@ import yfinance as yf
 import numpy as np
 import time
 from dateutil.relativedelta import relativedelta
+from layouts import portfolio
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True) #jinak callback nefunguje u multipage apps
 server = app.server
@@ -91,12 +92,27 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
     html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
     html.H1(
-    children='Twitter sentiment',
-    style={
-        "color": colors["text"],
-        "textAlign": "center"
-        }),
+        children='Twitter sentiment',
+        style={
+            "color": colors["text"],
+            "textAlign": "center"
+            }
+        ),
     
+    html.Div(
+        [
+            dcc.Checklist(
+                id = 'sentiment_ma',
+                options = [
+                    {"label" : "Long MA TextBlob", "value" : "long_ma"},
+                    {"label" : "Short MA TextBlob", "value" : "short_ma"}
+                ],
+                value = ["long_ma"],
+                labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"]}
+            ),
+        ],
+    ),
+
     html.Div([
         dcc.Graph(id='chart-with-slider'),
         dcc.Slider(
@@ -412,6 +428,8 @@ def display_page(pathname):
         return GILD_sentiment
     elif pathname =='/running_scripts':
         return running_scripts
+    elif pathname =='/portfolio':
+        return portfolio.portfolio_layout
     else:
         return index
 
@@ -419,8 +437,8 @@ def display_page(pathname):
 old_fig = None
 @app.callback(
     Output('chart-with-slider', 'figure'),
-    [Input('year-slider', 'value'),Input('interval-component-chart', 'n_intervals'),]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
-def update_figure(selected_time, n_interval):
+    [Input('year-slider', 'value'),Input('interval-component-chart', 'n_intervals'),Input('sentiment_ma', 'value')]) #input pro slider, auto-update, checklist
+def update_figure(selected_time, n_interval, selector):
     global old_fig
     if n_interval % 2 == 1:
         return old_fig
@@ -430,8 +448,10 @@ def update_figure(selected_time, n_interval):
         #data_frame_filtered_scatter = data_frame.tail(30) #zobrazí posledních n-tweetů v grafu jako body*
         fig = px.scatter()
         #fig.add_scatter(x=data_frame_filtered_scatter["time"], y=data_frame_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame["tweet"]) #*
-        fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_short"], mode="lines", name="1k tweets MA")
-        fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_long"], mode="lines", name="10k tweets MA")
+        if "short_ma" in selector:
+            fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_short"], mode="lines", name="1k tweets MA")
+        if "long_ma" in selector:    
+            fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_long"], mode="lines", name="10k tweets MA")
         fig.update_layout(title_text="xrp OR ripple",
                             title_x=0.5,
                             template="plotly_dark", 
