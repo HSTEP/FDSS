@@ -6,11 +6,13 @@ import json
 from datetime import datetime
 import re
 from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import time
 
 auth = tweepy.OAuthHandler(kody.API_key, kody.API_secret_key)
 auth.set_access_token(kody.Access_token, kody.Access_token_secret)
 cursor=kody.cnx.cursor()
+analyser = SentimentIntensityAnalyzer()
 
 def deEmojify(raw_tweet):
     if raw_tweet:
@@ -46,12 +48,16 @@ class listener(tweepy.streaming.StreamListener):
             time = all_data["created_at"]
             followers = all_data["user"]["followers_count"]
             sentiment = TextBlob(raw_tweet).polarity
+            vader = analyser.polarity_scores(raw_tweet)
+            vader = json.dumps(vader)
+            vader = json.loads(vader)
+            sentiment_vader = vader["compound"]
             # print("Followers: ", followers)
             new_datetime = datetime.strftime(datetime.strptime(time, '%a %b %d %H:%M:%S +0000 %Y'),
                                              '%Y-%m-%d %H:%M:%S')
             cursor.execute(
-                "INSERT INTO tweetTable (time, username, tweet, followers, sentiment) VALUES (%s,%s,%s,%s,%s)",
-                (new_datetime, username, raw_tweet, followers, sentiment))
+                "INSERT INTO tweetTable (time, username, tweet, followers, sentiment, sentiment_vader) VALUES (%s,%s,%s,%s,%s,%s)",
+                (new_datetime, username, raw_tweet, followers, sentiment, sentiment_vader))
 
             kody.cnx.commit()
 
@@ -79,10 +85,14 @@ for tweet in tweets_search:
         else:
             tweet_searched = tweet.text
         searched_sentiment = TextBlob(clean_tweet(tweet_searched)).polarity
+        vader = analyser.polarity_scores(clean_tweet(tweet_searched))
+        vader = json.dumps(vader)
+        vader = json.loads(vader)
+        sentiment_vader = vader["compound"]
 
         cursor.execute(
-                "INSERT INTO tweetTable (time, username, tweet, followers, sentiment) VALUES (%s,%s,%s,%s,%s)",
-                (tweet.created_at, tweet.author.screen_name, clean_tweet(tweet_searched), tweet.author.followers_count, searched_sentiment))
+                "INSERT INTO tweetTable (time, username, tweet, followers, sentiment, sentiment_vader) VALUES (%s,%s,%s,%s,%s,%s)",
+                (tweet.created_at, tweet.author.screen_name, clean_tweet(tweet_searched), tweet.author.followers_count, searched_sentiment, sentiment_vader))
         kody.cnx.commit() 
     print(tweet.author.screen_name, clean_tweet(tweet_searched), tweet.created_at)
 
@@ -103,4 +113,3 @@ if __name__ == "__main__":
         finally:
             print("Twitter Error")
             time.sleep(30)
-
