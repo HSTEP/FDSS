@@ -114,9 +114,10 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                     {"label" : "Long MA TextBlob", "value" : "long_ma"},
                     {"label" : "Short MA TextBlob", "value" : "short_ma"},
                     {"label" : "Long MA Vader", "value" : "vader_ma_long"},
-                    {"label" : "Short MA Vader", "value" : "vader_ma_short"}
+                    {"label" : "Short MA Vader", "value" : "vader_ma_short"},
+                    {"label" : "Scatter TextBlob", "value" : "scatter"}
                 ],
-                value = ["long_ma"],
+                value = ["scatter"],
                 labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
             ),
         ],
@@ -133,7 +134,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
         ),
     dcc.Interval(
             id='interval-component-chart',
-            interval=5*1000, # in milliseconds
+            interval=30*1000, # in milliseconds
             n_intervals=0
         )    
     ]),
@@ -211,7 +212,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
 
     dcc.Interval(
         id="interval-component",
-        interval=1000
+        interval=30*1000
     ),
 
         # html.Iframe(srcDoc='''
@@ -261,9 +262,10 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
                     {"label" : "Long MA TextBlob", "value" : "long_ma"},
                     {"label" : "Short MA TextBlob", "value" : "short_ma"},
                     {"label" : "Long MA Vader", "value" : "vader_ma_long"},
-                    {"label" : "Short MA Vader", "value" : "vader_ma_short"}
+                    {"label" : "Short MA Vader", "value" : "vader_ma_short"},
+                    {"label" : "Scatter TextBlob", "value" : "scatter"}
                 ],
-                value = ["vader_ma_short"],
+                value = ["scatter"],
                 labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
             ),
         ],
@@ -474,11 +476,12 @@ def update_figure(selected_time, n_interval, selector):
         return old_fig
     else:
         data_frame = get_data("tweetTable")
-        print(data_frame)
+        print("tweettable dataframe: ",data_frame.tail())
         data_frame_filtered = data_frame[data_frame.epoch > selected_time]
-        #data_frame_filtered_scatter = data_frame.tail(30) #zobrazí posledních n-tweetů v grafu jako body*
+        data_frame_filtered_scatter = data_frame.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
         fig = px.scatter()
-        #fig.add_scatter(x=data_frame_filtered_scatter["time"], y=data_frame_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame["tweet"]) #*
+        if "scatter" in selector:
+            fig.add_scatter(x=data_frame_filtered_scatter["time"], y=data_frame_filtered_scatter["sentiment"], mode="markers", name="Scatter TextBlob", marker={"size":4}, text=data_frame["tweet"]) #*
         if "short_ma" in selector:
             fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_short"], mode="lines", name="1k tweets MA")
         if "long_ma" in selector:    
@@ -521,7 +524,7 @@ def update_is_it_running(n_interval):
     data_frame_newsGILD["vader_ma_long"] = data_frame_newsGILD.sentiment_vader.rolling(window=30).mean()
     data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
     data_frame_newsGILD['url'] = display_links(data_frame_newsGILD)
-    return data_frame_newsGILD
+    return data_frame_newsGILD.to_dict('records')
 
 #--------------------callback pro update grafu z MYSQL newsGILD-------------------------
 @app.callback(
@@ -531,7 +534,8 @@ def update_news_figure(selected_time, n_interval, selector):
     data_frame_newsGILD_filtered = data_frame_newsGILD[data_frame_newsGILD.epoch > selected_time]
     data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
     fig_newsGILD = px.scatter()
-    #fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD["title"]) #*
+    if "scatter" in selector:    
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD["title"]) #*
     if "short_ma" in selector:
         fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD["ma_short"], mode="lines", name="Short MA TextBlob")
     if "long_ma" in selector: 
