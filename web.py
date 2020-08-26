@@ -278,7 +278,12 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         value=time.time()*10**9 - 432000*10**9,
         step=86400*10**9,
         ),
-    ], style={'width': '69%', 'display': 'inline-block'}),
+    dcc.Interval(
+            id='interval-component-news-chart',
+            interval=15*1000, # in milliseconds
+            n_intervals=0
+        )
+        ], style={'width': '69%', 'display': 'inline-block'}),
 
     html.Div(html.Img(src=app.get_asset_url('wordcloud_news_gild.svg'), height = "500px"),style={'width': '29%', 'display': 'inline-block'}),
 
@@ -529,21 +534,21 @@ def update_is_it_running(n_interval):
 #--------------------callback pro update grafu z MYSQL newsGILD-------------------------
 @app.callback(
     Output('chart-with-slider-news', 'figure'),
-    [Input('year-slider', 'value'),Input('interval-component-newsGILD','n_intervals'),Input('checklist_gild', 'value')]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
+    [Input('year-slider', 'value'),Input('interval-component-news-chart','n_intervals'),Input('checklist_gild', 'value')]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
 def update_news_figure(selected_time, n_interval, selector):
     data_frame_newsGILD_filtered = data_frame_newsGILD[data_frame_newsGILD.epoch > selected_time]
-    data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
+    #data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
     fig_newsGILD = px.scatter()
     if "scatter" in selector:    
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered_scatter["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD["title"]) #*
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD_filtered["title"]) #*
     if "short_ma" in selector:
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD["ma_short"], mode="lines", name="Short MA TextBlob")
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_short"], mode="lines", name="Short MA TextBlob")
     if "long_ma" in selector: 
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD["ma_long"], mode="lines", name="Long MA TextBlob")
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_long"], mode="lines", name="Long MA TextBlob")
     if "vader_ma_short" in selector:
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD["vader_ma_short"], mode="lines", name="10 news MA Vader")
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_short"], mode="lines", name="10 news MA Vader")
     if "vader_ma_long" in selector:    
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD["vader_ma_long"], mode="lines", name="30 news MA Vader")          
+        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_long"], mode="lines", name="30 news MA Vader")          
     fig_newsGILD.update_layout(title_text="GILD OR Gilead OR Remdesivir - newsAPI",
                         title_x=0.5,
                         template="plotly_dark", 
