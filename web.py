@@ -3,6 +3,8 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 import kody
 from dash_table.Format import Format, Scheme, Sign, Symbol
@@ -33,6 +35,9 @@ data_frame_newsGILD["ma_long"] = data_frame_newsGILD.sentiment.rolling(window=30
 data_frame_newsGILD["vader_ma_short"] = data_frame_newsGILD.sentiment_vader.rolling(window=10).mean()
 data_frame_newsGILD["vader_ma_long"] = data_frame_newsGILD.sentiment_vader.rolling(window=30).mean()
 data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
+data_frame_newsGILD["volume"] = 1
+df_G_volume = data_frame_newsGILD.set_index(['published']).resample('720min').agg({'volume': np.sum, 'sentiment': np.mean,'sentiment_vader': np.mean})
+df_G_volume["epoch"] =  df_G_volume.index.astype(np.int64)
 #data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu    
 #print("dataframenewsgild ",data_frame_newsGILD["published"])
 
@@ -537,28 +542,43 @@ def update_is_it_running(n_interval):
     [Input('year-slider', 'value'),Input('interval-component-news-chart','n_intervals'),Input('checklist_gild', 'value')]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
 def update_news_figure(selected_time, n_interval, selector):
     data_frame_newsGILD_filtered = data_frame_newsGILD[data_frame_newsGILD.epoch > selected_time]
-    #data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
-    fig_newsGILD = px.scatter()
+    df_G_volume_filtered = df_G_volume[df_G_volume.epoch > selected_time]
+    data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
+    fig = make_subplots(rows=2, 
+            cols=1, 
+            shared_xaxes=True, 
+            vertical_spacing=0, #to když se změní tak nefunguje row_heights
+            row_heights=[0.8, 0.2],
+            )
     if "scatter" in selector:    
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD_filtered["title"]) #*
+        scatter = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD_filtered["title"]) #*
+        fig.append_trace(scatter, 1, 1)
     if "short_ma" in selector:
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_short"], mode="lines", name="Short MA TextBlob")
+        short_ma = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_short"], mode="lines", name="Short MA TextBlob")
+        fig.append_trace(short_ma, 1, 1)
     if "long_ma" in selector: 
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_long"], mode="lines", name="Long MA TextBlob")
+        long_ma = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_long"], mode="lines", name="Long MA TextBlob")
+        fig.append_trace(long_ma, 1, 1)
     if "vader_ma_short" in selector:
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_short"], mode="lines", name="10 news MA Vader")
+        vader_ma_short = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_short"], mode="lines", name="10 news MA Vader")
+        fig.append_trace(vader_ma_short, 1, 1)
     if "vader_ma_long" in selector:    
-        fig_newsGILD.add_scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_long"], mode="lines", name="30 news MA Vader")          
-    fig_newsGILD.update_layout(title_text="GILD OR Gilead OR Remdesivir - newsAPI",
+        vader_ma_long = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_long"], mode="lines", name="30 news MA Vader")          
+        fig.append_trace(vader_ma_long, 1, 1)
+
+    volume = go.Bar(x=df_G_volume_filtered.index, y=df_G_volume_filtered["volume"],name="12h Volume", text = df_G_volume_filtered["volume"])
+    fig.append_trace(volume, 2, 1)
+    fig.layout.template = 'plotly_dark'
+    fig["layout"].update(title_text="GILD OR Gilead OR Remdesivir - newsAPI",
                         title_x=0.5,
                         template="plotly_dark", 
                         legend_title_text="", 
                         legend_orientation="h", 
-                        legend=dict(x=0, y=0)
+                        legend=dict(x=0, y=1),
+                        transition_duration=500
                         )
-    fig_newsGILD.update_layout(transition_duration=500)
     #print("Pocet tweetu v db: ", len(data_frame["time"]))
-    return fig_newsGILD
+    return fig
 
 #--------------------callback pro update tabulky z MySQL running_scripts----------------
 @app.callback(dash.dependencies.Output('table_running_scripts', 'data'),
