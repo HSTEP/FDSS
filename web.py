@@ -16,6 +16,7 @@ import numpy as np
 import time
 from dateutil.relativedelta import relativedelta
 from layouts import portfolio
+import mysql.connector
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True) #jinak callback nefunguje u multipage apps
 server = app.server
@@ -28,28 +29,31 @@ colors = {
     "button_text" : "#01ff70",
     "button_border" : "1px solid #ff8000",
 }
-
-data_frame_newsGILD = pd.read_sql('SELECT source, published, title, url, sentiment, sentiment_vader FROM newsGILD ORDER BY published ASC', con=kody.cnx)
-data_frame_newsGILD["ma_short"] = data_frame_newsGILD.sentiment.rolling(window=10).mean()
-data_frame_newsGILD["ma_long"] = data_frame_newsGILD.sentiment.rolling(window=30).mean()
-data_frame_newsGILD["vader_ma_short"] = data_frame_newsGILD.sentiment_vader.rolling(window=10).mean()
-data_frame_newsGILD["vader_ma_long"] = data_frame_newsGILD.sentiment_vader.rolling(window=30).mean()
-data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
-data_frame_newsGILD["volume"] = 1
-df_G_volume = data_frame_newsGILD.set_index(['published']).resample('720min').agg({'volume': np.sum, 'sentiment': np.mean,'sentiment_vader': np.mean})
-df_G_volume["epoch"] =  df_G_volume.index.astype(np.int64)
-#data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu    
-#print("dataframenewsgild ",data_frame_newsGILD["published"])
-
-def display_links(data_frame_newsGILD):
+def get_data_news():
+    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
+                                  host='localhost',
+                                  database='twitter',
+                                  charset = 'utf8')
+    data_frame_newsGILD = pd.read_sql('SELECT source, published, title, url, sentiment, sentiment_vader FROM newsGILD ORDER BY published DESC', con=cnx)
+    data_frame_newsGILD["ma_short"] = data_frame_newsGILD.sentiment.rolling(window=10).mean()
+    data_frame_newsGILD["ma_long"] = data_frame_newsGILD.sentiment.rolling(window=30).mean()
+    data_frame_newsGILD["vader_ma_short"] = data_frame_newsGILD.sentiment_vader.rolling(window=10).mean()
+    data_frame_newsGILD["vader_ma_long"] = data_frame_newsGILD.sentiment_vader.rolling(window=30).mean()
+    data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
+    data_frame_newsGILD["volume"] = 1
     links = data_frame_newsGILD['url'].to_list()
     rows = []
     for x in links:
         link = '[link](' +str(x) + ')'
-        rows.append(link)
-    return rows
-data_frame_newsGILD['url'] = display_links(data_frame_newsGILD)
-#print(data_frame_newsGILD["url"])
+        rows.append(link)#
+    data_frame_newsGILD['url'] = rows
+    return data_frame_newsGILD
+
+def get_data_news_volume():
+    df_G_volume = get_data_news().set_index(['published']).resample('720min').agg({'volume': np.sum, 'sentiment': np.mean,'sentiment_vader': np.mean})
+    df_G_volume["epoch"] =  df_G_volume.index.astype(np.int64)
+    return df_G_volume
+
 
 def get_data(table_name):
     data_frame = pd.read_sql('SELECT time, username, tweet, followers,  sentiment, sentiment_vader FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
@@ -285,7 +289,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         ),
     dcc.Interval(
             id='interval-component-news-chart',
-            interval=15*1000, # in milliseconds
+            interval=60*1000, # in milliseconds
             n_intervals=0
         )
         ], style={'width': '69%', 'display': 'inline-block'}),
@@ -329,7 +333,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         filter_action='native',
         css=[{'selector': '.dash-filter > input', 'rule': 'color: #01ff70; text-align : left'}],
         style_filter={"backgroundColor" : "#663300"}, #styly filtrů fungujou divně proto je zbytek přímo v css
-        data=data_frame_newsGILD.to_dict('records'),
+        data=get_data_news().to_dict('records'),
         fixed_rows={ 'headers': True, 'data': 0 },
         sort_action="native",
         page_size= 10,
@@ -369,7 +373,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             }),
     dcc.Interval(
         id='interval-component-newsGILD',
-        interval=15*1000, # in milliseconds
+        interval=70*1000, # in milliseconds
         n_intervals=0
     )
 ])
@@ -526,14 +530,9 @@ def update_table(n_interval):
 #--------------------callback pro update tabulky z MySQL newsGILD-----------------------
 @app.callback(dash.dependencies.Output('table_newsGILD', 'data'),
               [dash.dependencies.Input('interval-component-newsGILD', 'n_intervals')])
-def update_is_it_running(n_interval):
-    data_frame_newsGILD = pd.read_sql('SELECT source, published, title, url, sentiment, sentiment_vader FROM newsGILD ORDER BY published ASC', con=kody.cnx)
-    data_frame_newsGILD["ma_short"] = data_frame_newsGILD.sentiment.rolling(window=10).mean()
-    data_frame_newsGILD["ma_long"] = data_frame_newsGILD.sentiment.rolling(window=30).mean()
-    data_frame_newsGILD["vader_ma_short"] = data_frame_newsGILD.sentiment_vader.rolling(window=10).mean()
-    data_frame_newsGILD["vader_ma_long"] = data_frame_newsGILD.sentiment_vader.rolling(window=30).mean()
-    data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
-    data_frame_newsGILD['url'] = display_links(data_frame_newsGILD)
+def update_table_gild(n_interval):
+    data_frame_newsGILD = get_data_news()
+    print("NGt update")
     return data_frame_newsGILD.to_dict('records')
 
 #--------------------callback pro update grafu z MYSQL newsGILD-------------------------
@@ -541,9 +540,12 @@ def update_is_it_running(n_interval):
     Output('chart-with-slider-news', 'figure'),
     [Input('year-slider', 'value'),Input('interval-component-news-chart','n_intervals'),Input('checklist_gild', 'value')]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
 def update_news_figure(selected_time, n_interval, selector):
+    print("NGg update")
+    data_frame_newsGILD = get_data_news()
+    df_G_volume = get_data_news_volume()
     data_frame_newsGILD_filtered = data_frame_newsGILD[data_frame_newsGILD.epoch > selected_time]
     df_G_volume_filtered = df_G_volume[df_G_volume.epoch > selected_time]
-    data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
+    #data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
     fig = make_subplots(rows=2, 
             cols=1, 
             shared_xaxes=True, 
@@ -551,30 +553,30 @@ def update_news_figure(selected_time, n_interval, selector):
             row_heights=[0.8, 0.2],
             )
     if "scatter" in selector:    
-        scatter = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["sentiment"], mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD_filtered["title"]) #*
+        scatter = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["sentiment"],marker_color="#ff8000", mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD_filtered["title"]) #*
         fig.append_trace(scatter, 1, 1)
     if "short_ma" in selector:
-        short_ma = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_short"], mode="lines", name="Short MA TextBlob")
+        short_ma = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_short"],line_color="#ffff00", mode="lines", name="Short MA TextBlob")
         fig.append_trace(short_ma, 1, 1)
     if "long_ma" in selector: 
-        long_ma = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_long"], mode="lines", name="Long MA TextBlob")
+        long_ma = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_long"], line_color="#00ffff", mode="lines", name="Long MA TextBlob")
         fig.append_trace(long_ma, 1, 1)
     if "vader_ma_short" in selector:
-        vader_ma_short = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_short"], mode="lines", name="10 news MA Vader")
+        vader_ma_short = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_short"], line_color="#8000ff", mode="lines", name="10 news MA Vader")
         fig.append_trace(vader_ma_short, 1, 1)
     if "vader_ma_long" in selector:    
-        vader_ma_long = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_long"], mode="lines", name="30 news MA Vader")          
+        vader_ma_long = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_long"], line_color="#ff007f", mode="lines", name="30 news MA Vader")          
         fig.append_trace(vader_ma_long, 1, 1)
-
-    volume = go.Bar(x=df_G_volume_filtered.index, y=df_G_volume_filtered["volume"],name="12h Volume", text = df_G_volume_filtered["volume"])
+    volume = go.Bar(x=df_G_volume_filtered.index, y=df_G_volume_filtered["volume"], marker_color="#ff8000", name="12h Volume", text = df_G_volume_filtered["volume"])
     fig.append_trace(volume, 2, 1)
+
     fig.layout.template = 'plotly_dark'
     fig["layout"].update(title_text="GILD OR Gilead OR Remdesivir - newsAPI",
                         title_x=0.5,
                         template="plotly_dark", 
                         legend_title_text="", 
                         legend_orientation="h", 
-                        legend=dict(x=0, y=1),
+                        legend=dict(x=0, y=-0.13),
                         transition_duration=500
                         )
     #print("Pocet tweetu v db: ", len(data_frame["time"]))
