@@ -415,3 +415,99 @@ there.
 
 /* Larger than Desktop HD */
 @media (min-width: 1200px) {}
+
+/* Dropdown */
+.Select-menu-outer {
+  border: 1px solid #01ff70;
+  background-color: #663300;
+  color: #01ff70; }
+
+.Select-value-label {
+  color: #01ff70; }
+
+.Select-control {
+  border: 1px solid #01ff70;
+  background-color: #663300;
+  color: #01ff70; }
+
+.Select-multi-value-wrapper {
+  background-color: #663300;
+  color: #01ff70; }
+
+.Select.is-open .Select-arrow, .Select .Select-arrow-zone:hover > .Select-arrow {
+ border-top-color: #01ff70; }
+
+.Select-arrow-zone {
+  border-top: 1px solid #01ff70;
+  border-right: 1px solid #01ff70;
+  border-bottom: 1px solid #01ff70;
+  background-color: #663300;
+  color: #01ff70; }
+
+.Select.has-value.Select--single > .Select-control .Select-value .Select-value-label {
+  background-color: #663300;
+  color: #01ff70; }
+
+.Select.has-value.Select--single > .Select-control .Select-value .Select-value-label, .Select.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value .Select-value-label {
+  background-color: #663300;
+  color: #01ff70; }
+
+.Select-placeholder, .Select--single > .Select-control .Select-value {
+  border: 1px solid #01ff70;
+  background-color: #663300;
+  color: #01ff70; }
+
+#react-select-1--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+#react-select-2--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+#react-select-3--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+#react-select-4--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+#react-select-5--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+#react-select-6--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+#react-select-7--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+#react-select-8--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+#react-select-9--value-item {
+  background-color: #663300;
+  color: #01ff70; }
+
+.Select-control, .Select div, .is-open>.Select-control{
+  background-color: #663300;
+  color: #01ff70; }
+.Select--multi .Select-value {
+  background-color: #663300;
+  color: #01ff70; }
+
+.Select-arrow {
+    border-color: #01ff70 transparent transparent;
+    border-style: solid;
+    border-width: 5px 5px 2.5px;
+    display: inline-block;
+    height: 0;
+    width: 0;
+    position: relative; }
+
+.Select.is-open .Select-arrow, .Select .Select-arrow-zone:hover > .Select-arrow {
+  border-top-color: #01ff70; }
+
+  /* Slider */
+.rc-slider-handle {
+  border: solid 2px #01ff70;
+  background-color: #ff8000; }
+
+.rc-slider-step {
+  background: #ff8000; }

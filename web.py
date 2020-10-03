@@ -29,30 +29,33 @@ colors = {
     "button_text" : "#01ff70",
     "button_border" : "1px solid #ff8000",
 }
-def get_data_news():
+def get_data_news(table_name):
     cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
                                   host='localhost',
                                   database='twitter',
                                   charset = 'utf8')
-    data_frame_newsGILD = pd.read_sql('SELECT source, published, title, url, sentiment, sentiment_vader FROM newsGILD ORDER BY published DESC', con=cnx)
-    data_frame_newsGILD["ma_short"] = data_frame_newsGILD.sentiment.rolling(window=10).mean()
-    data_frame_newsGILD["ma_long"] = data_frame_newsGILD.sentiment.rolling(window=30).mean()
-    data_frame_newsGILD["vader_ma_short"] = data_frame_newsGILD.sentiment_vader.rolling(window=10).mean()
-    data_frame_newsGILD["vader_ma_long"] = data_frame_newsGILD.sentiment_vader.rolling(window=30).mean()
-    data_frame_newsGILD['epoch'] = data_frame_newsGILD['published'].astype(np.int64)
-    data_frame_newsGILD["volume"] = 1
-    links = data_frame_newsGILD['url'].to_list()
+    #Order by musí být ASC, jinak nejsou klouzavé průměry až do konce:
+    df = pd.read_sql('SELECT source, published, title, url, sentiment, sentiment_vader FROM '+ table_name +' ORDER BY published ASC', con=cnx)
+    df = df.set_index(['published'])
+    df["ma_short"] = df.sentiment.rolling(window=10).mean()
+    df["ma_long"] = df.sentiment.rolling(window=30).mean()
+    df["vader_ma_short"] = df.sentiment_vader.rolling(window=10).mean()
+    df["vader_ma_long"] = df.sentiment_vader.rolling(window=30).mean()
+    df['epoch'] = df.index.astype(np.int64)
+    df["volume"] = 1
+    links = df['url'].to_list()
     rows = []
     for x in links:
         link = '[link](' +str(x) + ')'
         rows.append(link)#
-    data_frame_newsGILD['url'] = rows
-    return data_frame_newsGILD
+    df['url'] = rows
+    return df
 
-def get_data_news_volume():
-    df_G_volume = get_data_news().set_index(['published']).resample('720min').agg({'volume': np.sum, 'sentiment': np.mean,'sentiment_vader': np.mean})
-    df_G_volume["epoch"] =  df_G_volume.index.astype(np.int64)
-    return df_G_volume
+def get_data_news_volume(table_name):
+    df_volume = get_data_news(table_name).resample('720min').agg({'volume': np.sum, 'sentiment': np.mean,'sentiment_vader': np.mean})
+    df_volume["epoch"] =  df_volume.index.astype(np.int64)
+    df_volume["MA"] = df_volume.volume.rolling(window=10).mean()
+    return df_volume
 
 
 def get_data(table_name):
@@ -67,17 +70,17 @@ def get_data(table_name):
     return data_frame
 #print("dataframetweetTable",get_data("tweetTable")["time"])
 
-gild = yf.download("GILD")
-data_gild = pd.DataFrame(data=gild)
-
-fig_gild = px.scatter(render_mode="webgl")
-fig_gild.add_scatter(y=data_gild["Close"], mode="lines", name="Gild closing price")
-fig_gild.update_layout(title_text="GILD stock price",
-                    title_x=0.5,
-                    template="plotly_dark", 
-                    legend_title_text="", 
-                    legend_orientation="h", 
-                    legend=dict(x=0, y=1))
+#gild = yf.download("GILD")
+#data_gild = pd.DataFrame(data=gild)
+#
+#fig_gild = px.scatter(render_mode="webgl")
+#fig_gild.add_scatter(y=data_gild["Close"], mode="lines", name="Gild closing price")
+#fig_gild.update_layout(title_text="GILD stock price",
+#                    title_x=0.5,
+#                    template="plotly_dark", 
+#                    legend_title_text="", 
+#                    legend_orientation="h", 
+#                    legend=dict(x=0, y=1))
 
 now_minus_one_hour = dt.now() - relativedelta(hours=1)
 data_frame_is_it_running = pd.read_sql('SELECT script, time FROM running_scripts ORDER BY time ASC', con=kody.cnx)
@@ -90,7 +93,7 @@ app.layout = html.Div([
 
 index = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
-    html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
     html.H1(
     children='index',
@@ -105,7 +108,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
     
     html.Div(id='page-1-content'),
     html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
-    html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
     html.H1(
         children='Twitter sentiment',
@@ -217,7 +220,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
             #"display": "inline-block"
             }),
 
-    html.Div(dcc.Graph(id="chart_gild",figure=fig_gild)),
+    #html.Div(dcc.Graph(id="chart_gild",figure=fig_gild)),
 
     dcc.Interval(
         id="interval-component",
@@ -257,12 +260,31 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
-    html.H1(children='GILD Sentiment',
+    html.H1(children='News Sentiment',
         style=
         {
         "color": colors["text"],
         "textAlign": "center"
         }),
+    html.Div(
+        [
+            dcc.Dropdown(
+                id='news-dropdown',
+                options=[
+                    {'label': 'GILD or Gilead or Remdesivir', 'value': 'newsGILD'},
+                    {'label': 'AMD', 'value': 'newsAMD'},
+                    #{'label': 'San Francisco', 'value': 'SF'}
+                ],
+                value='newsGILD',
+                clearable=False,
+                style = {
+                        'width': '300px',
+                        #'padding-left' : '100px',
+                        #'color' : colors["button_text"],
+                        #'background-color' : colors["button_background"],
+                        },
+            ),
+        ]),
     html.Div(
         [
             dcc.Checklist(
@@ -272,13 +294,15 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
                     {"label" : "Short MA TextBlob", "value" : "short_ma"},
                     {"label" : "Long MA Vader", "value" : "vader_ma_long"},
                     {"label" : "Short MA Vader", "value" : "vader_ma_short"},
-                    {"label" : "Scatter TextBlob", "value" : "scatter"}
+                    {"label" : "Scatter TextBlob", "value" : "sentiment_textblob"},
+                    {"label" : "Scatter Vader", "value" : "sentiment_vader"}
                 ],
-                value = ["scatter"],
+                value = ["sentiment_textblob"],
+                inputStyle = {"background-color": "black"},
                 labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
             ),
         ],
-    ),    
+    ),
     html.Div([dcc.Graph(id='chart-with-slider-news'),
         dcc.Slider(
         id='year-slider',
@@ -294,7 +318,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         )
         ], style={'width': '69%', 'display': 'inline-block'}),
 
-    html.Div(html.Img(src=app.get_asset_url('wordcloud_news_gild.svg'), height = "500px"),style={'width': '29%', 'display': 'inline-block'}),
+    html.Div(html.Img(src=app.get_asset_url('wordcloud_news_gild.svg'), height = "500px"),style={'width': '29%', 'display': 'inline-block', 'text-align' : 'center'}),
 
     html.Div(dash_table.DataTable(
         id="table_newsGILD",
@@ -333,7 +357,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         filter_action='native',
         css=[{'selector': '.dash-filter > input', 'rule': 'color: #01ff70; text-align : left'}],
         style_filter={"backgroundColor" : "#663300"}, #styly filtrů fungujou divně proto je zbytek přímo v css
-        data=get_data_news().to_dict('records'),
+        data=get_data_news("newsGILD").to_dict('records'),
         fixed_rows={ 'headers': True, 'data': 0 },
         sort_action="native",
         page_size= 10,
@@ -363,6 +387,13 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             'width': '90px'
             },
         ],
+        style_data_conditional=[                
+            {
+                "if": {"state": "selected"},              # 'active' | 'selected'
+                "backgroundColor": "#003855",
+                "border": "white",
+            },
+        ],
         style_as_list_view=True,
         virtualization=True,
         page_action="none"
@@ -381,7 +412,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
 running_scripts = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
-    html.Button(dcc.Link('GILD sentiment', href='/GILD_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.H1(
     children='Running Scripts',
     style={
@@ -470,7 +501,7 @@ running_scripts = html.Div(style={"backgroundColor": "black"},children=[
 def display_page(pathname):
     if pathname == '/twitter_sentiment':
         return twitter_sentiment
-    elif pathname == '/GILD_sentiment':
+    elif pathname == '/news_sentiment':
         return GILD_sentiment
     elif pathname =='/running_scripts':
         return running_scripts
@@ -528,57 +559,73 @@ def update_table(n_interval):
         return old_data
 
 #--------------------callback pro update tabulky z MySQL newsGILD-----------------------
-@app.callback(dash.dependencies.Output('table_newsGILD', 'data'),
-              [dash.dependencies.Input('interval-component-newsGILD', 'n_intervals')])
-def update_table_gild(n_interval):
-    data_frame_newsGILD = get_data_news()
-    print("NGt update")
-    return data_frame_newsGILD.to_dict('records')
+@app.callback(Output('table_newsGILD', 'data'),
+             [Input('news-dropdown', 'value'), #callback pro dropdown
+              Input('interval-component-newsGILD', 'n_intervals')])
+def update_table_gild(news, n_interval):
+    df = get_data_news(news).sort_index(ascending=False)#nejdřív seřadím pro default sort v datatablu
+    df = df.reset_index().rename(columns={df.index.name:'published'}) #protože index nejde zobrazit v datatablu
+    print("news table update")
+    return df.to_dict('records')
 
 #--------------------callback pro update grafu z MYSQL newsGILD-------------------------
 @app.callback(
     Output('chart-with-slider-news', 'figure'),
-    [Input('year-slider', 'value'),Input('interval-component-news-chart','n_intervals'),Input('checklist_gild', 'value')]) #Zavolá tu funkci update_figure(valuecasu, n_intrval) - callback pro slider a auto-update grafu
-def update_news_figure(selected_time, n_interval, selector):
-    print("NGg update")
-    data_frame_newsGILD = get_data_news()
-    df_G_volume = get_data_news_volume()
-    data_frame_newsGILD_filtered = data_frame_newsGILD[data_frame_newsGILD.epoch > selected_time]
-    df_G_volume_filtered = df_G_volume[df_G_volume.epoch > selected_time]
-    #data_frame_newsGILD_filtered_scatter = data_frame_newsGILD.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
+    [Input('year-slider', 'value'), #callback pro chart slider
+     Input('interval-component-news-chart','n_intervals'), #callbak pro update grafu
+     Input('news-dropdown', 'value'), #callback pro dropdown
+     Input('checklist_gild', 'value')]) #callback pro checklist
+def update_news_figure(selected_time, n_interval, news, selector):
+    print("news chart update")
+    df = get_data_news(news)
+    df_volume = get_data_news_volume(news)
+    df_filtered = df[df.epoch > selected_time]
+    df_volume_filtered = df_volume[df_volume.epoch > selected_time]
+    #df_filtered_scatter = df.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
     fig = make_subplots(rows=2, 
             cols=1, 
             shared_xaxes=True, 
             vertical_spacing=0, #to když se změní tak nefunguje row_heights
             row_heights=[0.8, 0.2],
             )
-    if "scatter" in selector:    
-        scatter = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["sentiment"],marker_color="#ff8000", mode="markers", name="sentiment", marker={"size":4}, text=data_frame_newsGILD_filtered["title"]) #*
+    if "sentiment_textblob" in selector:    
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment"],marker_color="#ff8000", mode="markers", name="Sentiment TextBlob", marker={"size":4}, text=df_filtered["title"]) #*
+        fig.append_trace(scatter, 1, 1)
+    if "sentiment_vader" in selector:    
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_vader"],marker_color="#ff0000", mode="markers", name="Sentiment Vader", marker={"size":4}, text=df_filtered["title"]) #*
         fig.append_trace(scatter, 1, 1)
     if "short_ma" in selector:
-        short_ma = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_short"],line_color="#ffff00", mode="lines", name="Short MA TextBlob")
+        short_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_short"],line_color="#ffff00", mode="lines", name="Short MA TextBlob")
         fig.append_trace(short_ma, 1, 1)
     if "long_ma" in selector: 
-        long_ma = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["ma_long"], line_color="#00ffff", mode="lines", name="Long MA TextBlob")
+        long_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_long"], line_color="#00ffff", mode="lines", name="Long MA TextBlob")
         fig.append_trace(long_ma, 1, 1)
     if "vader_ma_short" in selector:
-        vader_ma_short = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_short"], line_color="#8000ff", mode="lines", name="10 news MA Vader")
+        vader_ma_short = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_short"], line_color="#8000ff", mode="lines", name="10 news MA Vader")
         fig.append_trace(vader_ma_short, 1, 1)
     if "vader_ma_long" in selector:    
-        vader_ma_long = go.Scatter(x=data_frame_newsGILD_filtered["published"], y=data_frame_newsGILD_filtered["vader_ma_long"], line_color="#ff007f", mode="lines", name="30 news MA Vader")          
+        vader_ma_long = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_long"], line_color="#ff007f", mode="lines", name="30 news MA Vader")          
         fig.append_trace(vader_ma_long, 1, 1)
-    volume = go.Bar(x=df_G_volume_filtered.index, y=df_G_volume_filtered["volume"], marker_color="#ff8000", name="12h Volume", text = df_G_volume_filtered["volume"])
+    volume = go.Bar(x=df_volume_filtered.index, y=df_volume_filtered["volume"], marker_color="#ff8000", name="12h Volume", text = df_volume_filtered["volume"])
     fig.append_trace(volume, 2, 1)
+    volume_MA = go.Scatter(x=df_volume_filtered.index, y=df_volume_filtered["MA"], fill="tozeroy", mode="none", fillcolor="rgba(255, 128, 0, 0.4)", name="Volume MA 1O")
+    fig.append_trace(volume_MA, 2, 1)
 
-    fig.layout.template = 'plotly_dark'
-    fig["layout"].update(title_text="GILD OR Gilead OR Remdesivir - newsAPI",
-                        title_x=0.5,
+    fig["layout"].update(title_text=news,
                         template="plotly_dark", 
                         legend_title_text="", 
                         legend_orientation="h", 
                         legend=dict(x=0, y=-0.13),
-                        transition_duration=500
-                        )
+                        transition_duration=0,
+                        margin=dict(l=0, r=0, t=20, b=0),
+                        paper_bgcolor="black",
+                        plot_bgcolor="black",
+                        title={
+                            "yref": "paper",
+                            "y" : 1,
+                            "x" : 0.5,
+                            "yanchor" : "bottom"},
+                            )
     #print("Pocet tweetu v db: ", len(data_frame["time"]))
     return fig
 
