@@ -84,16 +84,16 @@ def get_data_reddit_volume(table_name):
     df_volume["MA"] = df_volume.volume.rolling(window=10).mean()
     return df_volume
 
-def get_data(table_name):
-    data_frame = pd.read_sql('SELECT time, username, tweet, followers,  sentiment, sentiment_vader FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
-    data_frame["ma_short"] = data_frame.sentiment.rolling(window=1000).mean()
-    data_frame["ma_long"] = data_frame.sentiment.rolling(window=10000).mean()
-    data_frame["vader_ma_short"] = data_frame.sentiment_vader.rolling(window=10).mean()
-    data_frame["vader_ma_long"] = data_frame.sentiment_vader.rolling(window=100).mean()    
-    data_frame['epoch'] = data_frame['time'].astype(np.int64)
-    data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu
-    print("Get data called on ", table_name, " at: ", time.time())
-    return data_frame
+#def get_data(table_name):
+#    data_frame = pd.read_sql('SELECT time, username, tweet, followers,  sentiment, sentiment_vader FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
+#    data_frame["ma_short"] = data_frame.sentiment.rolling(window=1000).mean()
+#    data_frame["ma_long"] = data_frame.sentiment.rolling(window=10000).mean()
+#    data_frame["vader_ma_short"] = data_frame.sentiment_vader.rolling(window=10).mean()
+#    data_frame["vader_ma_long"] = data_frame.sentiment_vader.rolling(window=100).mean()    
+#    data_frame['epoch'] = data_frame['time'].astype(np.int64)
+#    data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu
+#    print("Get data called on ", table_name, " at: ", time.time())
+#    return data_frame
 #print("dataframetweetTable",get_data("tweetTable")["time"])
 
 #gild = yf.download("GILD")
@@ -148,112 +148,155 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
     
     html.Div(
         [
+            dcc.Dropdown(
+                id='twitter-dropdown',
+                options=[
+                    {'label': 'Ripple or XRP', 'value': 'tweetTable_resampled_5m'},
+                    #{'label': 'AMD', 'value': 'redditAMD'},
+                    #{'label': 'San Francisco', 'value': 'SF'}
+                ],
+                value='tweetTable_resampled_5m',
+                clearable=False,
+                style = {
+                        'width': '300px',
+                        #'padding-left' : '100px',
+                        #'color' : colors["button_text"],
+                        #'background-color' : colors["button_background"],
+                        },
+            ),
+        ]),  
+    html.Div(
+        [
             dcc.Checklist(
                 id = 'sentiment_ma',
                 options = [
                     {"label" : "Long MA TextBlob", "value" : "long_ma"},
                     {"label" : "Short MA TextBlob", "value" : "short_ma"},
                     {"label" : "Long MA Vader", "value" : "vader_ma_long"},
-                    {"label" : "Short MA Vader", "value" : "vader_ma_short"},
-                    {"label" : "Scatter TextBlob", "value" : "scatter"}
+                    {"label" : "Short MA Vader", "value" : "vader_ma_short"}
                 ],
-                value = ["scatter"],
+                value = ["vader_ma_short"],
                 labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
             ),
         ],
     ),
 
+    dcc.Loading(id='load-component', color=colors["button_text"], children=[
+        html.Div([
+            dcc.Graph(id='chart-with-slider'),
+            ])
+        ]),
     html.Div([
-        dcc.Graph(id='chart-with-slider'),
         dcc.Slider(
         id='year-slider',
         min=1593560870000000000,
         max=time.time()*10**9,
         value=time.time()*10**9 - 259200*10**9,
         step=86400*10**9,
+        #updatemode="mouseup",
         ),
-    dcc.Interval(
-            id='interval-component-chart',
-            interval=30*1000, # in milliseconds
-            n_intervals=0
-        )    
-    ]),
-
-    html.Div(dash_table.DataTable(
-        id="table",
-        columns=[{
-            "id" : "username",
-            "name" : "Username",
-            "type" : "text"
-            },{
-            "id" : "followers",
-            "name" : "Followers",
-            "type" : "text"
-            },{
-            "id" : "time",
-            "name" : "Time",
-            "type" : "datetime"
-            },{
-            "id" : "tweet",
-            "name" : "Tweet",
-            "type" : "text"
-            },{
-            "id" : "sentiment",
-            "name" : "Sentiment",
-            "type" : "numeric",
-            "format" : Format(
-                precision = 5,
-            ),
-            }],
-
-        filter_action='native',
-        css=[{'selector': '.dash-filter > input', 'rule': 'color: #01ff70; text-align : left'}],
-        style_filter={"backgroundColor" : "#663300"}, #styly filtrů fungujou divně proto je zbytek přímo v css
-        data=get_data("tweetTable").to_dict('records'),
-        fixed_rows={ 'headers': True, 'data': 0 },
-        sort_action="native",
-        page_size= 10,
-        style_header={
-            "fontWeight" : "bold",
-            "textAlign" : "center"
-        },
-        style_cell={
-            "textAlign" : "left",
-            "backgroundColor" : colors["background"],
-            "color" : colors["text"],
-
-        },
-        style_data={
-        'whiteSpace': 'normal',
-        'height': 'auto',
-        'maxWidth': '500px',
-        'minWidth': '50px',
-        },
-        style_cell_conditional=[
-            {
-            'if': {'column_id': 'followers'},
-            'width': '90px'
-            },
-            {
-            'if': {'column_id': 'time'},
-            'width': '90px'
-            },
-        ],
-        style_as_list_view=True,
-        virtualization=True,
-        page_action="none"
-        ),style={
-            #"width": "48%",
-            #"align": "right",
-            #"display": "inline-block"
+        html.Div(id="year-slider-value", style={
+            "color": colors["text"],
+            "textAlign": "center"
             }),
-
-    #html.Div(dcc.Graph(id="chart_gild",figure=fig_gild)),
-
+        ]),
     dcc.Interval(
-        id="interval-component",
-        interval=30*1000
+        id='interval-component-chart',
+        interval=30*1000, # in milliseconds
+        n_intervals=0
+        ),
+    html.Div(
+        [
+            dcc.RadioItems(
+                id = 'table_checklist',
+                options = [
+                    {"label" : "Textblob Top", "value" : "tweetTable_resampled_sentiment"},
+                    {"label" : "Last Day", "value" : "last_day"},
+                    {"label" : "All Tweets", "value" : "all_tweets"},
+                ],
+                value = "last_day",
+                labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
+            ),
+            dcc.Loading(id='load-component', children=[
+                html.Div(id='loading-last-refreshed-label')]),
+        ],
     ),
+
+    dcc.Loading(id='load-component', color=colors["button_text"], children=[
+        html.Div(dash_table.DataTable(
+            id="table",
+            columns=[{
+                "id" : "username",
+                "name" : "Username",
+                "type" : "text"
+                },{
+                "id" : "followers",
+                "name" : "Followers",
+                "type" : "text"
+                },{
+                "id" : "time",
+                "name" : "Time",
+                "type" : "datetime"
+                },{
+                "id" : "tweet",
+                "name" : "Tweet",
+                "type" : "text"
+                },{
+                "id" : "sentiment",
+                "name" : "Sentiment",
+                "type" : "numeric",
+                "format" : Format(
+                    precision = 5,
+                ),
+                }],
+
+            filter_action='native',
+            css=[{'selector': '.dash-filter > input', 'rule': 'color: #01ff70; text-align : left'}],
+            style_filter={"backgroundColor" : "#663300"}, #styly filtrů fungujou divně proto je zbytek přímo v css
+            fixed_rows={ 'headers': True, 'data': 0 },
+            sort_action="native",
+            page_size= 10,
+            style_header={
+                "fontWeight" : "bold",
+                "textAlign" : "center"
+            },
+            style_cell={
+                "textAlign" : "left",
+                "backgroundColor" : colors["background"],
+                "color" : colors["text"],
+
+            },
+            style_data={
+            'whiteSpace': 'normal',
+            'height': 'auto',
+            'maxWidth': '500px',
+            'minWidth': '50px',
+            },
+            style_cell_conditional=[
+                {
+                'if': {'column_id': 'followers'},
+                'width': '90px'
+                },
+                {
+                'if': {'column_id': 'time'},
+                'width': '90px'
+                },
+            ],
+            style_as_list_view=True,
+            virtualization=True,
+            page_action="none"
+            ),style={
+                #"width": "48%",
+                #"align": "right",
+                #"display": "inline-block"
+                }),
+
+        #html.Div(dcc.Graph(id="chart_gild",figure=fig_gild)),
+
+        dcc.Interval(
+            id="interval-component",
+            interval=30*1000
+        ),],),
 
         # html.Iframe(srcDoc='''
         # <div class="tradingview-widget-container">
@@ -357,7 +400,15 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             'text-align' : 'center'
             }
         ),
-
+    html.Div([html.P(id = "count-news",
+                    style={
+                        "color": colors["text"]
+                        }
+                    ),
+                dcc.Interval(id='interval-component-count',
+                        interval=10*1000, # in milliseconds
+                        n_intervals=0)
+        ]),
     html.Div(dash_table.DataTable(
         id="table_newsGILD",
         columns=[{
@@ -520,7 +571,15 @@ reddit_layout = html.Div(style={"backgroundColor": "black"},children=[
     #            'text-align' : 'center'
     #            }
     #        ),
-
+    html.Div([html.P(id = "count-reddit",
+                    style={
+                        "color": colors["text"]
+                        }
+                    ),
+                dcc.Interval(id='interval-component-count',
+                        interval=10*1000, # in milliseconds
+                        n_intervals=0)
+        ]),
     html.Div(dash_table.DataTable(
         id="table_redditGILD",
         columns=[{
@@ -734,52 +793,114 @@ def display_page(pathname):
 
 
 #--------------------callback pro update grafu z MySQL tweetTable-----------------------
-old_fig = None
 @app.callback(
     Output('chart-with-slider', 'figure'),
-    [Input('year-slider', 'value'),Input('interval-component-chart', 'n_intervals'),Input('sentiment_ma', 'value')]) #input pro slider, auto-update, checklist
-def update_figure(selected_time, n_interval, selector):
-    global old_fig
-    if n_interval % 2 == 1:
-        return old_fig
+    [Input('year-slider', 'value'), #callback pro chart slider
+     #Input('interval-component-chart','n_intervals'), #callbak pro update grafu
+     Input('twitter-dropdown', 'value'), #callback pro dropdown
+     Input('sentiment_ma', 'value') #callback pro checklist
+     ]) 
+
+def update_news_figure(selected_time, keyword, selector): #(n_intervals) pro auto update
+    selected_time_datetime = datetime.datetime.fromtimestamp(selected_time/1000000000).replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+    #print("twitter chart update, selected time=",selected_time_datetime)
+    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
+                                  host='localhost',
+                                  database='twitter',
+                                  charset = 'utf8')    
+    df_filtered = pd.read_sql('SELECT time, sentiment, volume, sentiment_vader FROM '+ keyword +' WHERE time >= "'+selected_time_datetime+'"ORDER BY time ASC', con=cnx)
+    df_filtered = df_filtered.set_index(["time"])
+    df_filtered["ma_short"] = df_filtered.sentiment.rolling(window=10).mean()
+    df_filtered["ma_long"] = df_filtered.sentiment.rolling(window=100).mean()
+    df_filtered["vader_ma_short"] = df_filtered.sentiment_vader.rolling(window=10).mean()
+    df_filtered["vader_ma_long"] = df_filtered.sentiment_vader.rolling(window=100).mean()    
+    df_filtered['epoch'] = df_filtered.index.astype(np.int64)
+    df_volume_filtered = df_filtered.resample('30min').agg({'volume': np.sum})
+    df_volume_filtered["epoch"] =  df_volume_filtered.index.astype(np.int64)
+    #df_volume["MA"] = df_volume.volume.rolling(window=100).mean()
+    #df_filtered = df[df.epoch > selected_time]
+    #df_volume = get_data_twitter_volume(keyword)
+    #df_volume_filtered = df_volume[df_volume.epoch > selected_time]
+    fig = make_subplots(rows=2, 
+            cols=1, 
+            shared_xaxes=True, 
+            vertical_spacing=0, #to když se změní tak nefunguje row_heights
+            row_heights=[0.8, 0.2],
+            )
+    if "sentiment_textblob" in selector:    
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment"],marker_color="#ff8000", mode="markers", name="Sentiment TextBlob", marker={"size":4}, text=df_filtered["title"]) #*
+        fig.append_trace(scatter, 1, 1)
+    if "sentiment_vader" in selector:    
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_vader"],marker_color="#ff0000", mode="markers", name="Sentiment Vader", marker={"size":4}, text=df_filtered["title"]) #*
+        fig.append_trace(scatter, 1, 1)
+    if "short_ma" in selector:
+        short_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_short"],line_color="#ffff00", mode="lines", name="Short MA TextBlob")
+        fig.append_trace(short_ma, 1, 1)
+    if "long_ma" in selector: 
+        long_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_long"], line_color="#00ffff", mode="lines", name="Long MA TextBlob")
+        fig.append_trace(long_ma, 1, 1)
+    if "vader_ma_short" in selector:
+        vader_ma_short = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_short"], line_color="#8000ff", mode="lines", name="10 news MA Vader")
+        fig.append_trace(vader_ma_short, 1, 1)
+    if "vader_ma_long" in selector:    
+        vader_ma_long = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_long"], line_color="#ff007f", mode="lines", name="30 news MA Vader")          
+        fig.append_trace(vader_ma_long, 1, 1)
+    volume = go.Bar(x=df_volume_filtered.index, y=df_volume_filtered["volume"], marker_color="#ff8000", name="2m Volume", text = df_volume_filtered["volume"])
+    fig.append_trace(volume, 2, 1)
+    #volume_MA = go.Scatter(x=df_filtered.index, y=df_filtered["MA"], fill="tozeroy", mode="none", fillcolor="rgba(255, 128, 0, 0.4)", name="Volume MA 1O")
+    #fig.append_trace(volume_MA, 2, 1)
+
+    fig["layout"].update(#title_text="test",
+                        template="plotly_dark", 
+                        legend_title_text="", 
+                        legend_orientation="h", 
+                        legend=dict(x=0, y=-0.13),
+                        transition_duration=0,
+                        margin=dict(l=0, r=0, t=20, b=0),
+                        paper_bgcolor="black",
+                        plot_bgcolor="black",
+                        title={
+                            "yref": "paper",
+                            "y" : 1,
+                            "x" : 0.5,
+                            "yanchor" : "bottom"},
+                            )
+    #print("Pocet tweetu v db: ", len(data_frame["time"]))
+    return fig
+
+#--------------------callback pro update hodnoty slider_value--------------------------
+@app.callback(Output('year-slider-value', 'children'),
+                [Input("year-slider", "drag_value")
+                ])
+def slider_twitter(drag_value):
+    if drag_value == None:  #first load == None
+        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+        drag_value_datetime = yesterday.strftime("%Y-%m-%d %H:%M:%S")
     else:
-        data_frame = get_data("tweetTable")
-        print("tweettable dataframe: ",data_frame.tail())
-        data_frame_filtered = data_frame[data_frame.epoch > selected_time]
-        data_frame_filtered_scatter = data_frame.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
-        fig = px.scatter()
-        if "scatter" in selector:
-            fig.add_scatter(x=data_frame_filtered_scatter["time"], y=data_frame_filtered_scatter["sentiment"], mode="markers", name="Scatter TextBlob", marker={"size":4}, text=data_frame["tweet"]) #*
-        if "short_ma" in selector:
-            fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_short"], mode="lines", name="1k tweets MA")
-        if "long_ma" in selector:    
-            fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["ma_long"], mode="lines", name="10k tweets MA")
-        if "vader_ma_short" in selector:
-            fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["vader_ma_short"], mode="lines", name="10 tweets MA Vader")
-        if "vader_ma_long" in selector:    
-            fig.add_scatter(x=data_frame_filtered["time"], y=data_frame["vader_ma_long"], mode="lines", name="100 tweets MA Vader")                    
-        fig.update_layout(title_text="xrp OR ripple",
-                            title_x=0.5,
-                            template="plotly_dark", 
-                            legend_title_text="", 
-                            legend_orientation="h", 
-                            legend=dict(x=0, y=-1.2))
-        fig.update_layout(transition_duration=500)
-        #print("Pocet tweetu v db: ", len(data_frame["time"]))
-        old_fig = fig
-        return fig
+        drag_value_datetime = datetime.datetime.fromtimestamp(drag_value/1000000000).replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+    return 'Slider Value: {}'.format(drag_value_datetime)
 
 #--------------------callback pro update tabulky z MySQL tweetTable---------------------
-old_data = get_data("tweetTable").to_dict("records")
-@app.callback(dash.dependencies.Output('table', 'data'),
-              [dash.dependencies.Input('interval-component-chart', 'n_intervals')])
-def update_table(n_interval):
-    global old_data
-    if n_interval % 2 == 1:
-        old_data = get_data("tweetTable").to_dict('records')
-        return old_data
-    else:
-        return old_data
+@app.callback(Output('table', 'data'),
+              [#Input('interval-component-chart', 'n_intervals'),
+              Input('twitter-dropdown', 'value'),
+              Input('table_checklist', 'value'),
+              ])            
+def update_table(keyword, selector): #(n_intervals) pro auto update
+    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
+                                  host='localhost',
+                                  database='twitter',
+                                  charset = 'utf8')
+    if keyword == "tweetTable_resampled_5m":
+        if "tweetTable_resampled_sentiment" in selector:
+            df = get_data_twitter_resampled_sentiment("tweetTable_resampled_sentiment").to_dict('records')
+        if "last_day" in selector:
+            yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+            yesterday = yesterday.strftime("%Y-%m-%d %H:%M:%S")        
+            df = pd.read_sql('SELECT * FROM tweetTable WHERE time >= "'+yesterday+'" ORDER BY time ASC', con=cnx).to_dict('records') #aby fungovalo data_frame.resample
+        if "all_tweets" in selector:
+            df = pd.read_sql('SELECT * FROM tweetTable ORDER BY time ASC', con=cnx).to_dict('records')
+    return df
 
 #================================================================================================================
 
@@ -945,6 +1066,41 @@ def update_reddit_figure(selected_time, n_interval, reddit, selector):
     #print("Pocet tweetu v db: ", len(data_frame["time"]))
     return fig
 
+#================================================================================================================
+
+#--------------------news callback pro update "Database contains ... rows"-------------------
+@app.callback(Output("count-news", "children"),
+             [Input('news-dropdown', 'value'),
+              Input("interval-component-count", "n_intervals")])
+def count_row(news, n_intervals):
+    cursor=kody.cnx.cursor()
+    cursor.execute("""
+                   SELECT COUNT(*) 
+                   FROM """+ news +""";
+                   """
+                   )
+    count = str(cursor.fetchone()[0])
+    p = "Database contains "
+    p3 = " rows"
+    info = "".join([p,count,p3])
+    return info
+
+#--------------------reddit callback pro update "Database contains ... rows"-------------------
+@app.callback(Output("count-reddit", "children"),
+             [Input('reddit-dropdown', 'value'),
+              Input("interval-component-count", "n_intervals")])
+def count_row(news, n_intervals):
+    cursor=kody.cnx.cursor()
+    cursor.execute("""
+                   SELECT COUNT(*) 
+                   FROM """+ news +""";
+                   """
+                   )
+    count = str(cursor.fetchone()[0])
+    p = "Database contains "
+    p3 = " rows"
+    info = "".join([p,count,p3])
+    return info
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host="192.168.1.150")
+    app.run_server(debug=True, host="0.0.0.0")
