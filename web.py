@@ -147,8 +147,10 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                 id='twitter-dropdown',
                 options=[
                     {'label': 'Ripple or XRP', 'value': 'tweetTable_resampled_5m'},
-                    #{'label': 'AMD', 'value': 'redditAMD'},
-                    #{'label': 'San Francisco', 'value': 'SF'}
+                    {'label': 'Cloudflare', 'value': 'tweetTable_AR_NET_rt'},
+                    {'label': 'Oracle OR ORCL', 'value': 'tweetTable_AR_ORCL_rt'},
+                    {'label': 'Pritzer OR PFE', 'value': 'tweetTable_AR_PFE_rt'},
+                    {'label': 'Ferrari', 'value': 'tweetTable_AR_RACE_rt'}
                 ],
                 value='tweetTable_resampled_5m',
                 clearable=False,
@@ -183,14 +185,14 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
         ]),
     html.Div([
         dcc.Slider(
-        id='year-slider',
+        id='year-slider-tweetTable',
         min=1593560870000000000,
         max=time.time()*10**9,
         value=time.time()*10**9 - 259200*10**9,
         step=86400*10**9,
         #updatemode="mouseup",
         ),
-        html.Div(id="year-slider-value", style={
+        html.Div(id="year-slider-value-tweetTable", style={
             "color": colors["text"],
             "textAlign": "center"
             }),
@@ -200,6 +202,15 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
         interval=30*1000, # in milliseconds
         n_intervals=0
         ),
+    html.Div([html.P(id = "count-tweetTable",
+                    style={
+                        "color": colors["text"]
+                        }
+                    ),
+                dcc.Interval(id='interval-component-count-tweetTable',
+                        interval=10*1000, # in milliseconds
+                        n_intervals=0)
+        ]),
     html.Div(
         [
             dcc.RadioItems(
@@ -223,11 +234,11 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                 "name" : "Username",
                 "type" : "text"
                 },{
-                "id" : "followers",
+                "id" : "followers_count",
                 "name" : "Followers",
                 "type" : "text"
                 },{
-                "id" : "time",
+                "id" : "created_at",
                 "name" : "Time",
                 "type" : "datetime"
                 },{
@@ -235,8 +246,8 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                 "name" : "Tweet",
                 "type" : "text"
                 },{
-                "id" : "sentiment",
-                "name" : "Sentiment",
+                "id" : "sentiment_textblob",
+                "name" : "TextBlob",
                 "type" : "numeric",
                 "format" : Format(
                     precision = 5,
@@ -373,30 +384,40 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             ),
         ],
     ),
-    html.Div([dcc.Graph(id='chart-with-slider-news'),
-        dcc.Slider(
-        id='year-slider',
-        min=1594412760000000000,
-        max=time.time()*10**9,
-        value=time.time()*10**9 - 864000*10**9,
-        step=86400*10**9,
+    html.Div(dcc.Loading(id='load-component-tweetGraph', color=colors["button_text"], children=[
+        dcc.Graph(id='chart-with-slider-news')]),
+        style = {
+            'width': '69%',
+            'text-align' : 'left',
+            'display' : 'inline-block'
+            }
         ),
-    dcc.Interval(
-            id='interval-component-news-chart',
-            interval=60*1000, # in milliseconds
-            n_intervals=0
-        )
-        ], style={'width': '69%', 'display': 'inline-block'}),
-
     html.Div(html.Img(
         id = "wordcloud_news",
         src = app.get_asset_url('wordcloud_news_gild.svg'), 
         height = "500px"),
         style = {
-            'width': '29%', 
-            'display': 'inline-block', 
-            'text-align' : 'center'
+            'width': '29%',
+            'text-align' : 'right',
+            'display' : 'inline-block'
             }
+    ),
+    html.Div(
+        dcc.Slider(
+        id='year-slider-news',
+        min=1594412760000000000,
+        max=time.time()*10**9,
+        value=time.time()*10**9 - 864000*10**9,
+        step=86400*10**9,
+        ), style={'width': '69%','text-align' : 'left'}),
+    html.Div(id="year-slider-value-news", style={
+            "color": colors["text"],
+            'width': '69%',
+            'text-align' : 'center'}),
+    dcc.Interval(
+            id='interval-component-news-chart',
+            interval=60*1000, # in milliseconds
+            n_intervals=0
         ),
     html.Div([html.P(id = "count-news",
                     style={
@@ -793,7 +814,7 @@ def display_page(pathname):
 #--------------------callback pro update grafu z MySQL tweetTable-----------------------
 @app.callback(
     Output('chart-with-slider-tweetTable', 'figure'),
-    [Input('year-slider', 'value'), #callback pro chart slider
+    [Input('year-slider-tweetTable', 'value'), #callback pro chart slider
      #Input('interval-component-chart','n_intervals'), #callbak pro update grafu
      Input('twitter-dropdown', 'value'), #callback pro dropdown
      Input('sentiment_ma', 'value') #callback pro checklist
@@ -806,10 +827,10 @@ def update_tweetTable(selected_time, keyword, selector): #(n_intervals) pro auto
                                   host='localhost',
                                   database='twitter',
                                   charset = 'utf8')    
-    df_filtered = pd.read_sql('SELECT time, sentiment, volume, sentiment_vader FROM '+ keyword +' WHERE time >= "'+selected_time_datetime+'"ORDER BY time ASC', con=cnx)
-    df_filtered = df_filtered.set_index(["time"])
-    df_filtered["ma_short"] = df_filtered.sentiment.rolling(window=10).mean()
-    df_filtered["ma_long"] = df_filtered.sentiment.rolling(window=100).mean()
+    df_filtered = pd.read_sql('SELECT created_at, sentiment_textblob, volume, sentiment_vader FROM '+ keyword +' WHERE created_at >= "'+selected_time_datetime+'"ORDER BY created_at ASC', con=cnx)
+    df_filtered = df_filtered.set_index(["created_at"])
+    df_filtered["ma_short"] = df_filtered.sentiment_textblob.rolling(window=10).mean()
+    df_filtered["ma_long"] = df_filtered.sentiment_textblob.rolling(window=100).mean()
     df_filtered["vader_ma_short"] = df_filtered.sentiment_vader.rolling(window=10).mean()
     df_filtered["vader_ma_long"] = df_filtered.sentiment_vader.rolling(window=100).mean()    
     df_filtered['epoch'] = df_filtered.index.astype(np.int64)
@@ -826,7 +847,7 @@ def update_tweetTable(selected_time, keyword, selector): #(n_intervals) pro auto
             row_heights=[0.8, 0.2],
             )
     if "sentiment_textblob" in selector:    
-        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment"],marker_color="#ff8000", mode="markers", name="Sentiment TextBlob", marker={"size":4}, text=df_filtered["title"]) #*
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_textblob"],marker_color="#ff8000", mode="markers", name="Sentiment TextBlob", marker={"size":4}, text=df_filtered["title"]) #*
         fig.append_trace(scatter, 1, 1)
     if "sentiment_vader" in selector:    
         scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_vader"],marker_color="#ff0000", mode="markers", name="Sentiment Vader", marker={"size":4}, text=df_filtered["title"]) #*
@@ -866,9 +887,9 @@ def update_tweetTable(selected_time, keyword, selector): #(n_intervals) pro auto
     #print("Pocet tweetu v db: ", len(data_frame["time"]))
     return fig
 
-#--------------------callback pro update hodnoty slider_value--------------------------
-@app.callback(Output('year-slider-value', 'children'),
-                [Input("year-slider", "drag_value")
+#--------------------callback pro update hodnoty slider_value-tweetTable-----------------
+@app.callback(Output('year-slider-value-tweetTable', 'children'),
+                [Input("year-slider-tweetTable", "drag_value")
                 ])
 def slider_twitter(drag_value):
     if drag_value == None:  #first load == None
@@ -890,14 +911,21 @@ def update_table(keyword, selector): #(n_intervals) pro auto update
                                   database='twitter',
                                   charset = 'utf8')
     if keyword == "tweetTable_resampled_5m":
-        if "tweetTable_resampled_sentiment" in selector:
-            df = get_data_twitter_resampled_sentiment("tweetTable_resampled_sentiment").to_dict('records')
-        if "last_day" in selector:
-            yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-            yesterday = yesterday.strftime("%Y-%m-%d %H:%M:%S")        
-            df = pd.read_sql('SELECT * FROM tweetTable WHERE time >= "'+yesterday+'" ORDER BY time ASC', con=cnx).to_dict('records') #aby fungovalo data_frame.resample
-        if "all_tweets" in selector:
-            df = pd.read_sql('SELECT * FROM tweetTable ORDER BY time ASC', con=cnx).to_dict('records')
+        keyword = "tweetTable"
+    if keyword == "tweetTable_AR_NET_rt":
+        keyword = "tweetTable_AR_NET"    
+    if keyword == "tweetTable_AR_ORCL_rt":
+        keyword = "tweetTable_AR_ORCL"
+    if keyword == "tweetTable_AR_PFE_rt":
+        keyword = "tweetTable_AR_PFE"
+    if keyword == "tweetTable_AR_RACE_rt":
+        keyword = "tweetTable_AR_RACE"
+    if "last_day" in selector:
+        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+        yesterday = yesterday.strftime("%Y-%m-%d %H:%M:%S")        
+        df = pd.read_sql('SELECT * FROM '+ keyword +' WHERE created_at >= "'+yesterday+'" ORDER BY created_at ASC', con=cnx).to_dict('records') #aby fungovalo data_frame.resample
+    if "all_tweets" in selector:
+        df = pd.read_sql('SELECT * FROM '+ keyword +' ORDER BY created_at ASC', con=cnx).to_dict('records')
     return df
 
 #================================================================================================================
@@ -916,7 +944,7 @@ def update_table_gild(news, n_interval):
 #--------------------callback pro update grafu z MYSQL newsGILD-------------------------
 @app.callback(
     Output('chart-with-slider-news', 'figure'),
-    [Input('year-slider', 'value'), #callback pro chart slider
+    [Input('year-slider-news', 'value'), #callback pro chart slider
      Input('interval-component-news-chart','n_intervals'), #callbak pro update grafu
      Input('news-dropdown', 'value'), #callback pro dropdown
      Input('checklist_gild', 'value')]) #callback pro checklist
@@ -994,6 +1022,18 @@ def update_news_figure(selected_time, n_interval, keyword, selector):
                             )
     #print("Pocet tweetu v db: ", len(data_frame["time"]))
     return fig
+
+#--------------------callback pro update hodnoty slider_value-news----------------------
+@app.callback(Output('year-slider-value-news', 'children'),
+                [Input("year-slider-news", "drag_value")
+                ])
+def slider_news(drag_value):
+    if drag_value == None:  #first load == None
+        yesterday = datetime.datetime.now() - datetime.timedelta(days=10)
+        drag_value_datetime = yesterday.strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        drag_value_datetime = datetime.datetime.fromtimestamp(drag_value/1000000000).replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+    return 'Slider Value: {}'.format(drag_value_datetime)
 
 #--------------------callback pro update tabulky z MySQL running_scripts----------------
 @app.callback(dash.dependencies.Output('table_running_scripts', 'data'),
@@ -1087,21 +1127,67 @@ def update_reddit_figure(selected_time, n_interval, reddit, selector):
 
 #================================================================================================================
 
+#--------------------twitter callback pro update "Database contains ... rows"-------------------
+@app.callback(Output("count-tweetTable", "children"),
+             [Input('twitter-dropdown', 'value'),
+              Input("interval-component-count-tweetTable", "n_intervals")])
+def count_row(keyword, n_intervals):
+    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
+                                  host='localhost',
+                                  database='twitter',
+                                  charset = 'utf8')
+    cursor = cnx.cursor()
+    if keyword == "tweetTable_resampled_5m":
+        keyword = "tweetTable"
+    if keyword == "tweetTable_AR_NET_rt":
+        keyword = "tweetTable_AR_NET"    
+    if keyword == "tweetTable_AR_ORCL_rt":
+        keyword = "tweetTable_AR_ORCL"
+    if keyword == "tweetTable_AR_PFE_rt":
+        keyword = "tweetTable_AR_PFE"
+    if keyword == "tweetTable_AR_RACE_rt":
+        keyword = "tweetTable_AR_RACE"
+    cursor.execute("""
+                   SELECT COUNT(*) 
+                   FROM """+ keyword +""";
+                   """
+                   )
+    count = str(cursor.fetchone()[0])
+    p = "Database contains "
+    p3 = " rows "
+    info = "".join([p,count,p3])
+    return info
+
 #--------------------news callback pro update "Database contains ... rows"-------------------
 @app.callback(Output("count-news", "children"),
              [Input('news-dropdown', 'value'),
               Input("interval-component-count", "n_intervals")])
 def count_row(news, n_intervals):
-    cursor=kody.cnx.cursor()
+    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
+                                  host='localhost',
+                                  database='twitter',
+                                  charset = 'utf8')
+    cursor = cnx.cursor()
     cursor.execute("""
                    SELECT COUNT(*) 
                    FROM """+ news +""";
                    """
                    )
     count = str(cursor.fetchone()[0])
+    cursor.execute("""SELECT published FROM """+ news +""" ORDER BY published ASC LIMIT 1""")
+    cursor.close
+    for firstrow in cursor.fetchall():
+        firstresult = firstrow
+    datetime_from = firstresult[0].strftime('%Y-%m-%d %H:%M:%S')
+    cursor.execute("""SELECT published FROM """+ news +""" ORDER BY published DESC LIMIT 1""")
+    for lastrow in cursor.fetchall():
+        lastresult = lastrow
+    datetime_to = lastresult[0].strftime('%Y-%m-%d %H:%M:%S')
     p = "Database contains "
-    p3 = " rows"
-    info = "".join([p,count,p3])
+    p3 = " rows "
+    datetime_fromtext = "Since: "
+    datetime_totext = " Until: "
+    info = "".join([p,count,p3,datetime_fromtext,datetime_from,datetime_totext,datetime_to])
     return info
 
 #--------------------reddit callback pro update "Database contains ... rows"-------------------
@@ -1117,7 +1203,7 @@ def count_row(news, n_intervals):
                    )
     count = str(cursor.fetchone()[0])
     p = "Database contains "
-    p3 = " rows"
+    p3 = " rows "
     info = "".join([p,count,p3])
     return info
 
