@@ -29,6 +29,7 @@ colors = {
     "button_text" : "#01ff70",
     "button_border" : "1px solid #ff8000",
 }
+
 def get_data_news(table_name):
     cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
                                   host='localhost',
@@ -50,12 +51,6 @@ def get_data_news(table_name):
         rows.append(link)#
     df['url'] = rows
     return df
-
-def get_data_news_volume(table_name):
-    df_volume = get_data_news(table_name).resample('720min').agg({'volume': np.sum, 'sentiment': np.mean,'sentiment_vader': np.mean})
-    df_volume["epoch"] =  df_volume.index.astype(np.int64)
-    df_volume["MA"] = df_volume.volume.rolling(window=10).mean()
-    return df_volume
 
 def get_data_reddit(table_name):
     cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
@@ -181,9 +176,9 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
         ],
     ),
 
-    dcc.Loading(id='load-component', color=colors["button_text"], children=[
+    dcc.Loading(id='load-component-tweetGraph', color=colors["button_text"], children=[
         html.Div([
-            dcc.Graph(id='chart-with-slider'),
+            dcc.Graph(id='chart-with-slider-tweetTable'),
             ])
         ]),
     html.Div([
@@ -217,12 +212,10 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                 value = "last_day",
                 labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
             ),
-            dcc.Loading(id='load-component', children=[
-                html.Div(id='loading-last-refreshed-label')]),
         ],
     ),
 
-    dcc.Loading(id='load-component', color=colors["button_text"], children=[
+    dcc.Loading(id='load-component-tweetTable', color=colors["button_text"], children=[
         html.Div(dash_table.DataTable(
             id="table",
             columns=[{
@@ -344,8 +337,13 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
                 id='news-dropdown',
                 options=[
                     {'label': 'GILD or Gilead or Remdesivir', 'value': 'newsGILD'},
-                    {'label': 'AMD', 'value': 'newsAMD'},
-                    #{'label': 'San Francisco', 'value': 'SF'}
+                    {'label': 'Airbus', 'value': 'newsAIRBUS'},
+                    {'label': 'Boeing', 'value': 'newsBOEING'},
+                    {'label': 'Ford', 'value': 'newsF'},
+                    {'label': 'Ferrari', 'value': 'newsRACE'},
+                    {'label': 'Toyota', 'value': 'newsTOYOF'},
+                    {'label': 'Oracle or ORCL', 'value': 'newsORCL'},
+                    {'label': 'AZN', 'value': 'newsAZN'}
                 ],
                 value='newsGILD',
                 clearable=False,
@@ -380,7 +378,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
         id='year-slider',
         min=1594412760000000000,
         max=time.time()*10**9,
-        value=time.time()*10**9 - 432000*10**9,
+        value=time.time()*10**9 - 864000*10**9,
         step=86400*10**9,
         ),
     dcc.Interval(
@@ -794,14 +792,14 @@ def display_page(pathname):
 
 #--------------------callback pro update grafu z MySQL tweetTable-----------------------
 @app.callback(
-    Output('chart-with-slider', 'figure'),
+    Output('chart-with-slider-tweetTable', 'figure'),
     [Input('year-slider', 'value'), #callback pro chart slider
      #Input('interval-component-chart','n_intervals'), #callbak pro update grafu
      Input('twitter-dropdown', 'value'), #callback pro dropdown
      Input('sentiment_ma', 'value') #callback pro checklist
      ]) 
 
-def update_news_figure(selected_time, keyword, selector): #(n_intervals) pro auto update
+def update_tweetTable(selected_time, keyword, selector): #(n_intervals) pro auto update
     selected_time_datetime = datetime.datetime.fromtimestamp(selected_time/1000000000).replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
     #print("twitter chart update, selected time=",selected_time_datetime)
     cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
@@ -922,12 +920,33 @@ def update_table_gild(news, n_interval):
      Input('interval-component-news-chart','n_intervals'), #callbak pro update grafu
      Input('news-dropdown', 'value'), #callback pro dropdown
      Input('checklist_gild', 'value')]) #callback pro checklist
-def update_news_figure(selected_time, n_interval, news, selector):
+def update_news_figure(selected_time, n_interval, keyword, selector):
+    selected_time_datetime = datetime.datetime.fromtimestamp(selected_time/1000000000).replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
     print("news chart update")
-    df = get_data_news(news)
-    df_volume = get_data_news_volume(news)
-    df_filtered = df[df.epoch > selected_time]
-    df_volume_filtered = df_volume[df_volume.epoch > selected_time]
+    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
+                                  host='localhost',
+                                  database='twitter',
+                                  charset = 'utf8')
+    df_filtered = pd.read_sql('SELECT source, published, title, url, sentiment, sentiment_vader FROM '+ keyword +' WHERE published >= "'+selected_time_datetime+'" ORDER BY published ASC', con=cnx)
+    df_filtered = df_filtered.set_index(['published'])
+    df_filtered["ma_short"] = df_filtered.sentiment.rolling(window=10).mean()
+    df_filtered["ma_long"] = df_filtered.sentiment.rolling(window=30).mean()
+    df_filtered["vader_ma_short"] = df_filtered.sentiment_vader.rolling(window=10).mean()
+    df_filtered["vader_ma_long"] = df_filtered.sentiment_vader.rolling(window=30).mean()
+    df_filtered['epoch'] = df_filtered.index.astype(np.int64)
+    df_filtered["volume"] = 1
+    links = df_filtered['url'].to_list()
+    rows = []
+    for x in links:
+        link = '[link](' +str(x) + ')'
+        rows.append(link)#
+    df_filtered['url'] = rows
+    df_volume_filtered = df_filtered.resample('30min').agg({'volume': np.sum})
+    df_volume_filtered["epoch"] =  df_volume_filtered.index.astype(np.int64)
+    #df_volume = get_data_news(table_name).resample('720min').agg({'volume': np.sum, 'sentiment': np.mean,'sentiment_vader': np.mean})
+    #df_volume["epoch"] =  df_volume.index.astype(np.int64)
+    df_volume_filtered["MA"] = df_volume_filtered.volume.rolling(window=10).mean()
+    #df_volume_filtered = df_volume[df_volume.epoch > selected_time]
     #df_filtered_scatter = df.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
     fig = make_subplots(rows=2, 
             cols=1, 
@@ -958,7 +977,7 @@ def update_news_figure(selected_time, n_interval, news, selector):
     volume_MA = go.Scatter(x=df_volume_filtered.index, y=df_volume_filtered["MA"], fill="tozeroy", mode="none", fillcolor="rgba(255, 128, 0, 0.4)", name="Volume MA 1O")
     fig.append_trace(volume_MA, 2, 1)
 
-    fig["layout"].update(title_text=news,
+    fig["layout"].update(#title_text=news,
                         template="plotly_dark", 
                         legend_title_text="", 
                         legend_orientation="h", 
