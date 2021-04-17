@@ -1,13 +1,9 @@
 import backtrader as bt
 import yfinance as yf
-from strategy_tests import RSI_buy_strategy, MA_strategy
-from strategy import MA_cross_Sentiment
+from strategy import MA_cross_Sentiment, MA_controll_strategy
 from datetime import datetime
 import warnings
 
-stock = "GILD"
-# perioda = "60d" #time period
-# interval = "2m" #candlestick
 startcash = 1000
 stake = 1  # number of assets to buy
 
@@ -41,7 +37,7 @@ class GenericCSV_X(bt.feeds.GenericCSVData):
 
 
 data = GenericCSV_X(
-    dataname="csv_GILD.csv",
+    dataname="stocks_data/newsNET.csv",
     dtformat="%Y-%m-%d %H:%M:%S",
     datetime=0,
     high=2,
@@ -53,7 +49,7 @@ data = GenericCSV_X(
     sentiment=6,
     timeframe=bt.TimeFrame.Minutes,
 )
-
+cerebro.broker.setcommission(commission=0.002)
 # data
 cerebro.adddata(data)
 # add observer
@@ -64,12 +60,14 @@ cerebro.addstrategy(MA_cross_Sentiment)
 # cerebro.addsizer(bt.sizers.FixedSize, stake = stake)
 # analyzers
 cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="ta")
+cerebro.addanalyzer(bt.analyzers.DrawDown, _name="DD")
 # run strategy backtesting
 strats = cerebro.run()
 stats = strats[0]
 
 PnL = cerebro.broker.getvalue() - startcash
 PnLpercentage = (PnL / startcash) * 100
+DDDD = stats.analyzers.DD.get_analysis()
 try:
     print("startcash: ", startcash)
     print("PnL: ", PnL)
@@ -79,6 +77,7 @@ try:
     print("long trades lost:", stats.analyzers.ta.get_analysis()["long"]["lost"])
     print("short trades won:", stats.analyzers.ta.get_analysis()["short"]["won"])
     print("short trades lost:", stats.analyzers.ta.get_analysis()["short"]["lost"])
+    print("DrawDown:", stats.analyzers.DD.get_analysis()["max"]["drawdown"])
     print(
         "winning streak:", stats.analyzers.ta.get_analysis()["streak"]["won"]["longest"]
     )
@@ -87,6 +86,7 @@ try:
     )
 except KeyError:
     print("Analyzer Error")
+    
 
-cerebro.plot(tight=False, style="candle", volume= False)
+#cerebro.plot(tight=False, style="candle", volume= False)
 # print(time, datetime.now().isoformat())
