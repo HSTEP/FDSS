@@ -15,8 +15,18 @@ import yfinance as yf
 import numpy as np
 import time
 from dateutil.relativedelta import relativedelta
-from layouts import portfolio
+#from layouts import portfolio
 import mysql.connector
+
+import multidict as multidict
+from wordcloud import WordCloud
+import matplotlib
+import matplotlib.pyplot as plt
+import io
+import base64
+import re
+from PIL import Image
+import bt_for_web
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True) #jinak callback nefunguje u multipage apps
 server = app.server
@@ -116,6 +126,7 @@ index = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Reddit Sentiment', href='/reddit_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Backtesting', href='/backtesting', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"],"float": "right"}),
     html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
     html.H1(
     children='index',
@@ -132,6 +143,7 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
     html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Reddit Sentiment', href='/reddit_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Backtesting', href='/backtesting', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"],"float": "right"}),
     html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
     html.H1(
         children='Twitter sentiment',
@@ -336,6 +348,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Reddit Sentiment', href='/reddit_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
+    html.Button(dcc.Link('Backtesting', href='/backtesting', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"],"float": "right"}),
     html.H1(children='News Sentiment',
         style=
         {
@@ -347,14 +360,17 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             dcc.Dropdown(
                 id='news-dropdown',
                 options=[
-                    {'label': 'GILD or Gilead or Remdesivir', 'value': 'newsGILD'},
                     {'label': 'Airbus', 'value': 'newsAIRBUS'},
+                    {'label': 'AMC', 'value': 'newsAMC'},
+                    {'label': 'AZN OR AstraZeneca', 'value': 'newsAZN'},
+                    {'label': 'Cloudflare', 'value': 'newsNET'},
                     {'label': 'Boeing', 'value': 'newsBOEING'},
-                    {'label': 'Ford', 'value': 'newsF'},
                     {'label': 'Ferrari', 'value': 'newsRACE'},
-                    {'label': 'Toyota', 'value': 'newsTOYOF'},
+                    {'label': 'Ford', 'value': 'newsF'},
+                    {'label': 'GILD or Gilead or Remdesivir', 'value': 'newsGILD'},
                     {'label': 'Oracle or ORCL', 'value': 'newsORCL'},
-                    {'label': 'AZN', 'value': 'newsAZN'}
+                    {'label': 'PFE OR Pfizer', 'value': 'newsPFE'},
+                    {'label': 'Toyota', 'value': 'newsTOYOF'}
                 ],
                 value='newsGILD',
                 clearable=False,
@@ -393,8 +409,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             }
         ),
     html.Div(html.Img(
-        id = "wordcloud_news",
-        src = app.get_asset_url('wordcloud_news_gild.svg'), 
+        id = "wordcloud_with_slider_news",
         height = "500px"),
         style = {
             'width': '29%',
@@ -402,6 +417,7 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             'display' : 'inline-block'
             }
     ),
+
     html.Div(
         dcc.Slider(
         id='year-slider-news',
@@ -522,6 +538,7 @@ reddit_layout = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Running Scripts', href='/running_scripts',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
+    html.Button(dcc.Link('Backtesting', href='/backtesting', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"],"float": "right"}),
     html.H1(children='Reddit Sentiment',
         style=
         {
@@ -704,6 +721,210 @@ reddit_layout = html.Div(style={"backgroundColor": "black"},children=[
     )
 ])
 
+backtesting = html.Div(style={"backgroundColor": "black"}, children=[
+    html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"]}),
+    html.Button(dcc.Link('News Sentiment', href='/news_sentiment', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"]}),
+    html.Button(dcc.Link('Reddit Sentiment', href='/reddit_sentiment', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"]}),
+    html.Button(dcc.Link('Running Scripts', href='/running_scripts', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"],"float": "right"}),
+    html.H1(
+        children='Backtesting',
+        style={
+            "color": colors["text"],
+            "textAlign": "center"
+        }),
+
+    html.Div(
+        children=[
+            html.Div(
+                children=[
+                    html.Div(
+                        id="buttons",
+                        children=[
+                            html.Div(id="bt-strategy-text",
+                                     style={
+                                         "color": colors["text"],
+                                         "margin-left": "13px",
+                                     }
+                                     ),
+                            html.Div(dcc.Input(
+                                id='bt-strategy',
+                                placeholder="Select Strategy",
+                                type="number",
+                                min=0, max=1,
+                                step=1,
+                                style={
+                                    "color": colors["button_text"],
+                                    "width": "150px",
+                                    "margin-bottom": "4px",
+                                    "margin-left": "13px",
+                                    "text-align": "center",
+                                    "background-color": colors["button_background"],
+                                    "border": colors["button_border"]
+                                })
+                            ),
+                            html.Div(id="short-ma-text",
+                                     style={
+                                         "color": colors["text"],
+                                         "margin-left": "13px",
+                                     }
+                                     ),
+                            html.Div(dcc.Input(
+                                id='short-ma',
+                                placeholder="Short MA Period",
+                                type="number",
+                                min=0, max=100000,
+                                step=1,
+                                style={
+                                    "color": colors["button_text"],
+                                    "width": "150px",
+                                    "margin-bottom": "4px",
+                                    "margin-left": "13px",
+                                    "text-align": "center",
+                                    "background-color": colors["button_background"],
+                                    "border": colors["button_border"]
+                                })
+                            ),
+                            html.Div(id="long-ma-text",
+                                     style={
+                                         "color": colors["text"],
+                                         "margin-left": "13px",
+                                     }
+                                     ),
+                            html.Div(dcc.Input(
+                                id='long-ma',
+                                placeholder="Long MA Period",
+                                type="number",
+                                min=0, max=100000,
+                                step=1,
+                                style={
+                                    "color": colors["button_text"],
+                                    "width": "150px",
+                                    "margin-bottom": "4px",
+                                    "margin-left": "13px",
+                                    "text-align": "center",
+                                    "background-color": colors["button_background"],
+                                    "border": colors["button_border"]
+                                })
+                            ),
+                            html.Div(id="stop-loss-text",
+                                     style={
+                                         "color": colors["text"],
+                                         "margin-left": "13px",
+                                     }
+                                     ),
+                            html.Div(dcc.Input(
+                                id='stop-loss',
+                                placeholder="Stop-Loss [%]",
+                                type="number",
+                                min=0, max=100,
+                                step=0.1,
+                                style={
+                                    "color": colors["button_text"],
+                                    "width": "150px",
+                                    "margin-bottom": "4px",
+                                    "margin-left": "13px",
+                                    "text-align": "center",
+                                    "background-color": colors["button_background"],
+                                    "border": colors["button_border"]
+                                })
+                            ),
+                            html.Div(id="take-profit-text",
+                                     style={
+                                         "color": colors["text"],
+                                         "margin-left": "13px",
+                                     }
+                                     ),
+                            html.Div(dcc.Input(
+                                id='take-profit',
+                                placeholder="Take-Profit [%]",
+                                type="number",
+                                min=0, max=100,
+                                step=0.1,
+                                style={
+                                    "color": colors["button_text"],
+                                    "width": "150px",
+                                    "margin-bottom": "4px",
+                                    "margin-left": "13px",
+                                    "text-align": "center",
+                                    "background-color": colors["button_background"],
+                                    "border": colors["button_border"]
+                                })
+                            ),
+                            html.Div(html.Button(
+                                "start backtest",
+                                id='bt-button',
+                                style={
+                                    "color": colors["button_text"],
+                                    "background-color": colors["button_background"],
+                                    "border": "2px solid " + colors["button_text"]})
+                            ),
+                        ],
+                    ),
+                    html.Div(
+                        id="console-container",
+                        children=[
+                            html.Div(id="hidden-div", style={"display": "none"}),
+
+                            html.Div(
+                                id="console",
+                                style={
+                                    "width": 500,
+                                    "height": 370,
+                                    "background-color": "white",
+                                    "overflow": "scroll"
+                                }
+                            ),
+                            dcc.Interval(
+                                id='interval',
+                                interval=0.5 * 1000,  # in milliseconds
+                                n_intervals=0
+                            ), ],
+                        style={
+                            "flex-grow": 1
+                        }
+                    )],
+                style={
+                    "display": "flex",
+                    "flex-direction": "row",
+                },
+            ),],
+        style={
+            "align-items" : "center",
+            "justify-content" : "center",
+            "display": "flex",
+        }),
+    html.Div(children=[
+        html.Div(
+                children=[
+                    html.Button("Make Chart",
+                        id='bt-chart-button',
+                        style={
+                            "width" : 685,
+                            "background-color": "red",
+                            "color": colors["button_text"],
+                            "background-color": colors["button_background"],
+                            "border": "2px solid " + colors["button_text"]}),
+                ],
+                style={
+                    "display" : "flex",
+                    "align-items" : "center",
+                    "justify-content" : "center",
+                }
+                ),
+        html.Div(
+                dcc.Loading(id="bt-chart",
+                color=colors["button_text"], 
+                children=[
+                dcc.Graph(id='bt-chart',
+                    style = {
+                        "height":"1000px",
+                },
+                )]),
+        )],
+        style={
+        }),
+]),
+
 running_scripts = html.Div(style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
@@ -803,13 +1024,110 @@ def display_page(pathname):
         return reddit_layout
     elif pathname =='/running_scripts':
         return running_scripts
-    elif pathname =='/portfolio':
-        return portfolio.portfolio_layout
+    elif pathname =='/backtesting':
+        return backtesting
     else:
         return index
 
 #================================================================================================================
+# -----------------------------callbacky pro backtesting---------------------------------
 
+try:
+    process
+except NameError:
+    process = None
+
+lines = []
+
+@app.callback(
+    dash.dependencies.Output("hidden-div", 'children'),
+    [dash.dependencies.Input('bt-button', 'n_clicks'),
+     dash.dependencies.State('bt-strategy', 'value'),
+     dash.dependencies.State('short-ma', 'value'),
+     dash.dependencies.State('long-ma', 'value'),
+     dash.dependencies.State('stop-loss', 'value'),
+     dash.dependencies.State('take-profit', 'value'),
+    ],
+    prevent_initial_call=True,)
+def run_script_onClick(n_clicks, strat_id,shortMa, longMa, stopLoss, takeProfit):
+    global process, lines
+    args = []
+    if strat_id is not None:
+        args.append(f"strat_id={int(strat_id)}")
+    if shortMa is not None:
+        args.append(f"shortMA={int(shortMa)}")
+    if longMa is not None:
+        args.append(f"longMA={int(longMa)}")
+    if stopLoss is not None:
+        args.append(f"stopLoss={int(stopLoss)}")
+    if takeProfit is not None:
+        args.append(f"takeProfit={int(takeProfit)}")
+
+    lines = []
+    print("Running the script")
+    if process is not None:
+        process.terminate()
+        process = None
+    process = bt_for_web.run_strategy(*args)
+
+@app.callback(
+    dash.dependencies.Output("console", "children"),
+    [Input("interval", "n_intervals")]
+)
+def get_output_of_process(n_intervals):
+    if process is not None:
+        for _ in range(15):
+            line = process.stdout.readline()
+            line = line.decode("utf-8")
+            lines.insert(0,line)
+    return [html.P(line, style={"margin": 0, "line-height": 13}) for line in lines]
+
+@app.callback(
+    dash.dependencies.Output('bt-strategy-text', 'children'),
+    [dash.dependencies.Input('bt-strategy', 'value'),
+     ])
+def short_ma_text(short_ma):
+    return 'Strategy number= {}'.format(short_ma)
+
+@app.callback(
+    dash.dependencies.Output('short-ma-text', 'children'),
+    [dash.dependencies.Input('short-ma', 'value'),
+     ])
+def short_ma_text(short_ma):
+    return 'Short MA= {}'.format(short_ma)
+
+@app.callback(
+    dash.dependencies.Output('long-ma-text', 'children'),
+    [dash.dependencies.Input('long-ma', 'value'),
+     ])
+def long_ma_text(long_ma):
+    return 'Long MA= {}'.format(long_ma)
+
+@app.callback(
+    dash.dependencies.Output('stop-loss-text', 'children'),
+    [dash.dependencies.Input('stop-loss', 'value'),
+     ])
+def stop_loss_text(stop_loss):
+    return 'Stop Loss= {}%'.format(stop_loss)
+
+@app.callback(
+    dash.dependencies.Output('take-profit-text', 'children'),
+    [dash.dependencies.Input('take-profit', 'value'),
+     ])
+def take_profit_text(take_profit):
+    return 'Take Profit= {}%'.format(take_profit)
+
+@app.callback(
+    Output('bt-chart', 'figure'),
+    [Input('bt-chart-button','n_clicks') #callback pro checklist
+    ],
+    prevent_initial_call=True,)
+
+def bt_chart_maker(n_clicks):
+    fig = bt_for_web.bt_make_chart()
+    return fig
+
+    
 
 #--------------------callback pro update grafu z MySQL tweetTable-----------------------
 @app.callback(
@@ -1053,6 +1371,42 @@ def update_body_image(news):
     return src
 
 #================================================================================================================
+@app.callback(
+    Output('wordcloud_with_slider_news', 'src'),
+    [Input('year-slider-news', 'value'), #callback pro chart slider
+     Input('news-dropdown', 'value')]) #callback pro dropdown
+def update_wordcloud_news_html(selected_time, keyword):
+    selected_time_datetime = datetime.datetime.fromtimestamp(selected_time/1000000000).replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+    print("news wc update")
+    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
+                                  host='localhost',
+                                  database='twitter',
+                                  charset = 'utf8')
+    data = pd.read_sql("SELECT title FROM "+ keyword +" WHERE published > \""+ selected_time_datetime +"\" ", con=cnx)
+    
+    sentence = ' '.join(data["title"].tolist())
+
+    fullTermsDict = multidict.MultiDict()
+    tmpDict = {}
+
+    # making dict for counting frequencies
+    for text in sentence.split(" "):
+        if re.match("rt|stock|gilead|a|the|an|the|to|in|for|of|or|by|with|is|on|that|be", text):
+            continue
+        val = tmpDict.get(text, 0)
+        tmpDict[text.lower()] = val + 1
+    for key in tmpDict:
+        fullTermsDict.add(key, tmpDict[key])
+
+    wordcloud = WordCloud(height=500, width=500, background_color="white", contour_color='white', colormap="magma").generate_from_frequencies(fullTermsDict)
+    buf = io.BytesIO() # in-memory files
+    plt.figure()
+    plt.imshow(wordcloud, interpolation="bilinear")
+    plt.axis("off")
+    plt.savefig(buf, format = "png", dpi=600, bbox_inches = 'tight', pad_inches = 0) # save to the above file object
+    data = base64.b64encode(buf.getbuffer()).decode("utf8") # encode to html elements
+    plt.close()
+    return "data:image/png;base64,{}".format(data)
 
 #--------------------callback pro update tabulky z MySQL redditGILD-----------------------
 @app.callback(Output('table_redditGILD', 'data'),
