@@ -224,35 +224,131 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                         n_intervals=0)
         ]),
     html.Div(
-        [
-            dcc.RadioItems(
-                id = 'table_checklist',
-                options = [
-                    {"label" : "Textblob Top", "value" : "tweetTable_resampled_sentiment"},
-                    {"label" : "Last Day", "value" : "last_day"},
-                    {"label" : "All Tweets", "value" : "all_tweets"},
+        children=[
+            html.Div(dcc.Dropdown(
+                id='t-database',
+                options=[
+                    {'label': 'Airbus', 'value': 'tweetTable_AR_AB'},
+                    {'label': 'AMC', 'value': 'tweetTable_AR_AMC'},
+                    {'label': 'Boeing', 'value': 'tweetTable_AR_BOEING'},
+                    {'label': 'Ford', 'value': 'tweetTable_AR_F'},
+                    {'label': 'Gilead OR GILD', 'value': 'tweetTable_AR_GILD'},
+                    {'label': 'Cloudflare', 'value': 'tweetTable_AR_NET'},
+                    {'label': 'Oracle OR ORCL', 'value': 'tweetTable_AR_ORCL'},
+                    {'label': 'Pfizer OR PFE', 'value': 'tweetTable_AR_PFE'},
+                    {'label': 'Ferrari', 'value': 'tweetTable_AR_RACE'},
+                    {'label': 'Toyota OR TOYOF', 'value': 'tweetTable_AR_TOYOF'}
                 ],
-                value = "last_day",
-                labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
+                value='tweetTable_AR_NET',
+                clearable=False,
+                style = {
+                        'width': '300px',
+                        #'padding-left' : '100px',
+                        #'color' : colors["button_text"],
+                        #'background-color' : colors["button_background"],
+                        },
+                )
             ),
-        ],
+            html.Div(dcc.Input(
+                id='t-time-delta',
+                placeholder="Time Delta [days]",
+                type="number",
+                min=0, max=100,
+                step=1,
+                value = 20,
+                style={
+                "color": colors["button_text"],
+                "width": "150px",
+                "text-align": "center",
+                "background-color": colors["button_background"],
+                "border": colors["button_border"],
+                "border": "2px solid " + colors["button_text"]
+                })
+            ),
+            html.Div(dcc.Dropdown(
+                id='t-sort-by',
+                options=[
+                    {'label': 'retveet_count', 'value': 'retveet_count'},
+                    {'label': 'reply_count', 'value': 'reply_count'},
+                    {'label': 'like_count', 'value': 'like_count'},
+                    {'label': 'quote_count', 'value': 'quote_count'},
+                    {'label': 'followers_count', 'value': 'followers_count'},
+                    {'label': 'following_count', 'value': 'following_count'},
+                    {'label': 'tweet_count', 'value': 'tweet_count'},
+                ],
+                value='tweet_count',
+                clearable=False,
+                style = {
+                        'width': '200px',
+                        #'padding-left' : '100px',
+                        #'color' : colors["button_text"],
+                        #'background-color' : colors["button_background"],
+                        },
+                )
+            ),
+            html.Div(dcc.Input(
+                id='t-best',
+                placeholder="with highest value",
+                type="number",
+                min=0, max=100,
+                step=1,
+                style={
+                    "color": colors["button_text"],
+                    "width": "150px",
+                    "text-align": "center",
+                    "background-color": colors["button_background"],
+                    "border": colors["button_border"],
+                    "display":"inline-block",
+                    "border": "2px solid " + colors["button_text"]
+                })
+            ),
+            html.Div(dcc.Input(
+                id='t-worst',
+                placeholder="with lowest value",
+                type="number",
+                min=0, max=100,
+                step=1,
+                style={
+                    "color": colors["button_text"],
+                    "width": "150px",
+                    "text-align": "center",
+                    "background-color": colors["button_background"],
+                    "border": colors["button_border"],
+                    "display":"inline-block",
+                    "border": "2px solid " + colors["button_text"]
+                })
+            ),
+            html.Div(html.Button(
+                "Search",
+                id='t-search',
+                style={
+                    "color": colors["button_text"],
+                    "background-color": colors["button_background"],
+                    "border": "2px solid " + colors["button_text"]})
+            ),
+        ], 
+        style = {
+            "display":"flex",
+            "margin-bottom": "4px",
+        }
     ),
 
     dcc.Loading(id='load-component-tweetTable', color=colors["button_text"], children=[
         html.Div(dash_table.DataTable(
             id="table",
             columns=[{
-                "id" : "username",
-                "name" : "Username",
-                "type" : "text"
-                },{
-                "id" : "followers_count",
-                "name" : "Followers",
-                "type" : "text"
-                },{
                 "id" : "created_at",
                 "name" : "Time",
                 "type" : "datetime"
+                },{
+                "id" : "name",
+                "name" : "Name",
+                "type" : "text"
+                },{
+                "id" : "url",
+                "name" : "url",
+                "type" : "text",
+                "presentation" : "markdown"
                 },{
                 "id" : "tweet",
                 "name" : "Tweet",
@@ -262,8 +358,41 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                 "name" : "TextBlob",
                 "type" : "numeric",
                 "format" : Format(
-                    precision = 5,
-                ),
+                precision = 3,
+                )},{
+                "id" : "sentiment_vader",
+                "name" : "Vader",
+                "type" : "numeric",
+                "format" : Format(
+                precision = 3,
+                )},{
+                "id" : "retweet_count",
+                "name" : "Retweeted",
+                "type" : "numeric"
+                },{
+                "id" : "reply_count",
+                "name" : "Replyed",
+                "type" : "numeric"
+                },{
+                "id" : "like_count",
+                "name" : "Liked",
+                "type" : "numeric"
+                },{
+                "id" : "quote_count",
+                "name" : "Quoted",
+                "type" : "numeric"
+                },{
+                "id" : "followers_count",
+                "name" : "followers",
+                "type" : "numeric"
+                },{
+                "id" : "following_count",
+                "name" : "Following",
+                "type" : "numeric"
+                },{
+                "id" : "tweet_count",
+                "name" : "Tweets",
+                "type" : "numeric"
                 }],
 
             filter_action='native',
@@ -400,7 +529,8 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             ),
         ],
     ),
-    html.Div(dcc.Loading(id='load-component-tweetGraph', color=colors["button_text"], children=[
+
+     html.Div(dcc.Loading(id='load-component-tweetGraph', color=colors["button_text"], children=[
         dcc.Graph(id='chart-with-slider-news')]),
         style = {
             'width': '69%',
@@ -408,16 +538,15 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             'display' : 'inline-block'
             }
         ),
-    html.Div(html.Img(
+    html.Div(dcc.Loading(html.Img(
         id = "wordcloud_with_slider_news",
-        height = "500px"),
+        width = "100%")),
         style = {
+            'flex-shrink':'1',
             'width': '29%',
-            'text-align' : 'right',
-            'display' : 'inline-block'
+            'display' : 'inline-block',
             }
     ),
-
     html.Div(
         dcc.Slider(
         id='year-slider-news',
@@ -734,6 +863,48 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
         }),
 
     html.Div(
+        [
+            dcc.Dropdown(
+                id='bt-dropdown',
+                options=[
+                    {'label': 'News Airbus', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsAIRBUS.csv'},
+                    {'label': 'News AMC', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsAMC.csv'},
+                    {'label': 'News AZN OR AstraZeneca', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsAZN.csv'},
+                    {'label': 'News Cloudflare', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsNET.csv'},
+                    {'label': 'News Boeing', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsBOEING.csv'},
+                    {'label': 'News Ferrari', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsRACE.csv'},
+                    {'label': 'News Ford', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsF.csv'},
+                    {'label': 'News Oracle or ORCL', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsORCL.csv'},
+                    {'label': 'News PFE OR Pfizer', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsPFE.csv'},
+                    {'label': 'News Toyota', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsTOYOF.csv'},
+                    {'label': 'Tweets Airbus', 'value': 'newsAIRBUS'},
+                    {'label': 'Tweets AMC', 'value': 'newsAMC'},
+                    {'label': 'Tweets Cloudflare', 'value': 'newsNET'},
+                    {'label': 'Tweets Boeing', 'value': 'newsBOEING'},
+                    {'label': 'Tweets Ferrari', 'value': 'newsRACE'},
+                    {'label': 'Tweets Ford', 'value': 'newsF'},
+                    {'label': 'Tweets GILD or Gilead or Remdesivir', 'value': 'newsGILD'},
+                    {'label': 'Tweets Oracle or ORCL', 'value': 'newsORCL'},
+                    {'label': 'Tweets PFE OR Pfizer', 'value': 'newsPFE'},
+                    {'label': 'Tweets Toyota', 'value': 'newsTOYOF'},
+                ],
+                value='/home/stepan/stranka/backtrader/stocks_data/newsNET.csv',
+                clearable=False,
+                style = {
+                        'width': '300px',
+                        'text-align' : 'center',
+                        #'color' : colors["button_text"],
+                        #'background-color' : colors["button_background"],
+                        },
+            ),
+        ], 
+        style={
+        "display" : "flex",
+        "align-items" : "center",
+        "justify-content" : "center",
+        }
+    ),
+    html.Div(
         children=[
             html.Div(
                 children=[
@@ -870,7 +1041,8 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                                 style={
                                     "width": 500,
                                     "height": 370,
-                                    "background-color": "white",
+                                    "color": colors["text"],
+                                    "background-color": "black",
                                     "overflow": "scroll"
                                 }
                             ),
@@ -911,15 +1083,10 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                     "justify-content" : "center",
                 }
                 ),
-        html.Div(
-                dcc.Loading(id="bt-chart",
+        html.Div(dcc.Loading(id="bt-chart",
                 color=colors["button_text"], 
-                children=[
-                dcc.Graph(id='bt-chart',
-                    style = {
-                        "height":"1000px",
-                },
-                )]),
+                children=[],)
+
         )],
         style={
         }),
@@ -1042,6 +1209,7 @@ lines = []
 @app.callback(
     dash.dependencies.Output("hidden-div", 'children'),
     [dash.dependencies.Input('bt-button', 'n_clicks'),
+     dash.dependencies.State('bt-dropdown', 'value'),
      dash.dependencies.State('bt-strategy', 'value'),
      dash.dependencies.State('short-ma', 'value'),
      dash.dependencies.State('long-ma', 'value'),
@@ -1049,9 +1217,11 @@ lines = []
      dash.dependencies.State('take-profit', 'value'),
     ],
     prevent_initial_call=True,)
-def run_script_onClick(n_clicks, strat_id,shortMa, longMa, stopLoss, takeProfit):
+def run_script_onClick(n_clicks, drop_stock, strat_id, shortMa, longMa, stopLoss, takeProfit):
     global process, lines
     args = []
+    if drop_stock is not None:
+        args.append(f"file={str(drop_stock)}")    
     if strat_id is not None:
         args.append(f"strat_id={int(strat_id)}")
     if shortMa is not None:
@@ -1118,14 +1288,18 @@ def take_profit_text(take_profit):
     return 'Take Profit= {}%'.format(take_profit)
 
 @app.callback(
-    Output('bt-chart', 'figure'),
+    Output('bt-chart', 'children'),
     [Input('bt-chart-button','n_clicks') #callback pro checklist
     ],
     prevent_initial_call=True,)
 
 def bt_chart_maker(n_clicks):
     fig = bt_for_web.bt_make_chart()
-    return fig
+    return  dcc.Graph(id='bt-chart',
+                figure = fig,
+                style = {
+                    "height":"1000px",
+            },),
 
     
 
@@ -1219,32 +1393,36 @@ def slider_twitter(drag_value):
 
 #--------------------callback pro update tabulky z MySQL tweetTable---------------------
 @app.callback(Output('table', 'data'),
-              [#Input('interval-component-chart', 'n_intervals'),
-              Input('twitter-dropdown', 'value'),
-              Input('table_checklist', 'value'),
-              ])            
-def update_table(keyword, selector): #(n_intervals) pro auto update
-    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
-                                  host='localhost',
-                                  database='twitter',
-                                  charset = 'utf8')
-    if keyword == "tweetTable_resampled_5m":
-        keyword = "tweetTable"
-    if keyword == "tweetTable_AR_NET_rt":
-        keyword = "tweetTable_AR_NET"    
-    if keyword == "tweetTable_AR_ORCL_rt":
-        keyword = "tweetTable_AR_ORCL"
-    if keyword == "tweetTable_AR_PFE_rt":
-        keyword = "tweetTable_AR_PFE"
-    if keyword == "tweetTable_AR_RACE_rt":
-        keyword = "tweetTable_AR_RACE"
-    if "last_day" in selector:
-        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-        yesterday = yesterday.strftime("%Y-%m-%d %H:%M:%S")        
-        df = pd.read_sql('SELECT * FROM '+ keyword +' WHERE created_at >= "'+yesterday+'" ORDER BY created_at ASC', con=cnx).to_dict('records') #aby fungovalo data_frame.resample
-    if "all_tweets" in selector:
-        df = pd.read_sql('SELECT * FROM '+ keyword +' ORDER BY created_at ASC', con=cnx).to_dict('records')
-    return df
+             [Input('t-search', 'n_clicks'),
+              dash.dependencies.State('t-database', 'value'),
+              dash.dependencies.State('t-time-delta', 'value'),
+              dash.dependencies.State('t-sort-by', 'value'),
+              dash.dependencies.State('t-best', 'value'),
+              dash.dependencies.State('t-worst', 'value'),
+             ],
+              prevent_initial_call=True,)       
+def update_table(n_clicks, t_database, t_time_delta, t_sort_by, t_best, t_worst): #(n_intervals) pro auto update
+
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=t_time_delta)
+    yesterday = yesterday.strftime("%Y-%m-%d %H:%M:%S")
+    df = pd.read_sql('SELECT created_at, tweet_id, name, tweet, sentiment_textblob, sentiment_vader, retweet_count, reply_count, like_count, quote_count, followers_count, following_count, tweet_count  FROM '+t_database+' WHERE created_at >= "'+yesterday+'" ORDER BY '+t_sort_by+' DESC', con=kody.cnx)
+    df = df.set_index(['created_at'])#aby fungovalo data_frame.resample
+    result = [group[1] for group in df.groupby(df.index.hour)] #vytvoří list s tabulkami rozdělených po dnech
+    dfs_selection = pd.DataFrame()
+    for frame in result:
+        dfW = pd.concat([frame.head(t_best), frame.tail(t_worst)]).drop_duplicates()
+        dfs_selection = dfs_selection.append(dfW)
+    dfs_selection = dfs_selection.reset_index()
+
+    links = dfs_selection['tweet_id'].to_list()
+    rows = []
+    for x in links:
+        link = '[link](https://twitter.com/i/status/' +str(x) + ')'
+        rows.append(link)#
+    dfs_selection['url'] = rows
+
+    print(dfs_selection)
+    return dfs_selection.to_dict('records')
 
 #================================================================================================================
 
