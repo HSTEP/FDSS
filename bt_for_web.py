@@ -12,7 +12,7 @@ def run_strategy(*args):
 
 def bt_make_chart():
 
-    with open("/home/stepan/stranka/backtrader/backtrader_web/web_writer_backtrader.csv") as f:
+    with open("/home/stepan/stranka/web_writer_backtrader.csv") as f:
         reader = csv.reader(f, delimiter=",")
         rows = []
         reader.__next__()  # Skip first line

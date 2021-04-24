@@ -13,8 +13,8 @@ class MA_cross_Sentiment(bt.Strategy):
 
     def log(self, txt, dt=None):
         """ datetime  """
-        dt = self.datas[0].datetime.datetime(0)
-        print("%s, %s" % (dt.isoformat().replace("T", " "), txt))
+        #dt = self.datas[0].datetime.datetime(0)
+        #print("%s, %s" % (dt.isoformat().replace("T", " "), txt))
 
     def __init__(self):
         # Vytváření klouzavého průměru z ceny
@@ -46,14 +46,14 @@ class MA_cross_Sentiment(bt.Strategy):
 
 
     def notify_order(self, order):
-        print(
-            "{}: Order ref: {} / Type {} / Status {}".format(
-                self.data.datetime.datetime(0),
-                order.ref,
-                "Buy" * order.isbuy() or "Sell",
-                order.getstatusname(),
-            )
-        )
+        #print(
+        #    "{}: Order ref: {} / Type {} / Status {}".format(
+        #        self.data.datetime.datetime(0),
+        #        order.ref,
+        #        "Buy" * order.isbuy() or "Sell",
+        #        order.getstatusname(),
+        #    )
+        #)
 
         if order.status == order.Completed:
             self.order = None  # Po dokončení obchodu není žádný obchod
@@ -155,9 +155,9 @@ class MA_cross_Sentiment(bt.Strategy):
         if not trade.isclosed:
             return
 
-        print("-" * 32, " NOTIFY TRADE ", "-" * 32)
-        self.log("OPERATION PROFIT, price %.2f, Profit %.2f" % (trade.price, trade.pnl))
-        print("-" * 32, " ⬇︎ NEXT TRADE ⬇︎ ", "-" * 32)
+        #print("-" * 32, " NOTIFY TRADE ", "-" * 32)
+        #self.log("OPERATION PROFIT, price %.2f, Profit %.2f" % (trade.price, trade.pnl))
+        #print("-" * 32, " ⬇︎ NEXT TRADE ⬇︎ ", "-" * 32)
 
 
 

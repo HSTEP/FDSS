@@ -61,7 +61,7 @@ else:
 # cerebro.addanalyzer(bt.analyzers.Transactions, _name="TT")
 cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="ta")
 cerebro.addanalyzer(bt.analyzers.DrawDown, _name="DD")
-cerebro.addwriter(bt.WriterFile, csv=True, out="/home/stepan/stranka/backtrader/backtrader_web/web_writer_backtrader.csv")
+cerebro.addwriter(bt.WriterFile, csv=True, out="/home/stepan/stranka/web_writer_backtrader.csv")
 # run strategy backtesting
 strats = cerebro.run()
 stats = strats[0]

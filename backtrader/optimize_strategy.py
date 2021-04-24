@@ -17,7 +17,7 @@ if __name__ == '__main__':
     startcash = 1000
     stake = 1 #number of assets to buy
 
-    cerebro = bt.Cerebro(optreturn=False)
+    cerebro = bt.Cerebro(optreturn=False,stdstats=False,optdatas=True)
 
     cerebro.broker.setcash(startcash)
     '''
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     '''
 
     data = GenericCSV_X(
-        dataname="stocks_data/newsNET.csv",
+        dataname="stocks_data/newsBOEING.csv",
         dtformat="%Y-%m-%d %H:%M:%S",
         datetime=0,
         high=2,
@@ -47,9 +47,9 @@ if __name__ == '__main__':
     cerebro.adddata(data)
     #optimize strategy
     cerebro.optstrategy(MA_cross_Sentiment, 
-                        period_long=range(199,201), 
-                        period_short=range(20,22), 
-                        stop_loss=range(1,2)
+                        period_long=range(190,240), 
+                        period_short=range(10,30), 
+                        stop_loss=range(1,20)
                         )
     #fixed number of assets to buy
     cerebro.addsizer(bt.sizers.FixedSize, stake = stake)
