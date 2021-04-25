@@ -7,45 +7,61 @@ import numpy as np
 from plotly.subplots import make_subplots
 from sqlalchemy import create_engine
 from tqdm import tqdm
+import plotly.express as px
+import mysql.connector
 
-print("start: ", datetime.now().isoformat())
+begin_time = datetime.now()
 
 engine = create_engine(kody.sqlalchemy_psswd)
 
-def dataframe_resampled_time(source_sql_table, time_period, destination_sql_table):
-    '''snížení množství dat v databázi, pro dcc.Graph a Backtrader MA
+def dataframe_r_twitter(source_sql_table, time_period, destination_sql_table):
+    '''Create twitter 
     
     source_sql_table = z jaké tabulky vybrat data
     time_period = granualita po resamplingu
     destination_sql_table = do jaké databáze data uložit
     '''
-    #yesterday = datetime.now() - timedelta(days=1)
-    #yesterday = yesterday.strftime("%Y-%m-%d %H:%M:%S")
-
-    #data_frame = pd.read_sql('SELECT * FROM tweetTable WHERE time >= "'+yesterday+'" ORDER BY time ASC', con=kody.cnx)
-    data_frame = pd.read_sql('SELECT * FROM '+source_sql_table+' ORDER BY time ASC', con=kody.cnx)
-    data_frame = data_frame.set_index(['time']) #aby fungovalo data_frame.resample
+    cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
+                                  host='localhost',
+                                  database='twitter',
+                                  charset = 'utf8')
+    #cursor.execute("""SELECT 
+    #                    created_at 
+    #                FROM """+source_sql_table+""" 
+    #                ORDER BY 
+    #                    created_at ASC LIMIT 1""")
+    #for row in cursor.fetchall():
+    #    result = row
+    #datetimeto = result[0].strftime('%Y-%m-%dT%H:%M:%S')
+    data_frame = pd.read_sql("""SELECT 
+                                    sentiment_textblob, sentiment_vader, created_at 
+                                FROM """+source_sql_table+""" 
+                                ORDER BY 
+                                    created_at ASC
+                                """, 
+                                con=cnx)
+    data_frame = data_frame.set_index(['created_at']) #aby fungovalo data_frame.resample
     data_frame["volume"] = 1    #u každého tweetu přidá řádek s volume -> 1 řádek = 1 tweet, proto 1
-    df_mean = data_frame.resample(time_period).agg({'sentiment_vader': np.mean, 'sentiment': np.mean,'volume': np.sum})    #to dělám aby candlestick něměly high=1 a low=0
-    df_mean.to_sql(destination_sql_table, con=engine, if_exists="append", index=True)
+    df_r = data_frame.resample(time_period).agg({'sentiment_vader': np.mean, 'sentiment_textblob': np.mean,'volume': np.sum})
+    df_r.to_sql(destination_sql_table, con=engine, if_exists="append", index=True)
     return
 
-def dataframe_resampled_selection(source_sql_table, time_delta, order_by, top_selection, bottom_selection, destination_sql_table):
-    '''
-    source_sql_table = z jaké tabulky vybrat data
-    time_delta = čas od kterého se vybírá z tabulky
-    order_by = čeho chceme nejvyšší a nejnižší hodnoty
-    top_selection = kolik řádek ze zhora vybrat a uložit do databáze (bottom selection = zespoda)
-    destination_sql_table = do jaké databáze data uložit
-    '''
-    df = pd.read_sql('SELECT * FROM '+source_sql_table+' WHERE time >= "'+yesterday+'" ORDER BY '+order_by+' DESC', con=kody.cnx)
-    df = df.set_index(['time'])#aby fungovalo data_frame.resample
-    result = [group[1] for group in df.groupby(df.index.hour)] #vytvoří list s tabulkami rozdělených po dnech
-    print(result)
-    for frame in tqdm(result):
-        pd.concat([frame.head(top_selection), frame.tail(bottom_selection)]).drop_duplicates()\
-            .to_sql(destination_sql_table, con=engine, if_exists="append", index=True)
+def resample_t():
+    dataframe_r_twitter("tweetTable_AR_AB", "10min", "tweetTable_AR_AB_r")
+    dataframe_r_twitter("tweetTable_AR_AMC", "10min", "tweetTable_AR_AMC_r")
+    dataframe_r_twitter("tweetTable_AR_BOEING", "10min", "tweetTable_AR_BOEING_r")
+    dataframe_r_twitter("tweetTable_AR_F", "10min", "tweetTable_AR_F_r")
+    dataframe_r_twitter("tweetTable_AR_GILD", "10min", "tweetTable_AR_GILD_r")
+    dataframe_r_twitter("tweetTable_AR_NET", "10min", "tweetTable_AR_NET_r")
+    dataframe_r_twitter("tweetTable_AR_ORCL", "10min", "tweetTable_AR_ORCL_r")
+    dataframe_r_twitter("tweetTable_AR_PFE", "10min", "tweetTable_AR_PFE_r")
+    dataframe_r_twitter("tweetTable_AR_RACE", "10min", "tweetTable_AR_RACE_r")
+    dataframe_r_twitter("tweetTable_AR_TOYOF", "10min", "tweetTable_AR_TOYOF_r")
     return
 
-dataframe_resampled_selection("tweetTable",10,"followers",10,0,"tweetTable_resampled_sentiment")
-print("stop: ", datetime.now().isoformat())
+def resample_t_test():
+    dataframe_r_twitter("tweetTable_AR_NET", "10min", "tweetTable_AR_NET_r")
+    return
+
+resample_t()
+print("duration: ", datetime.now() - begin_time)

@@ -158,13 +158,18 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
             dcc.Dropdown(
                 id='twitter-dropdown',
                 options=[
-                    {'label': 'Ripple or XRP', 'value': 'tweetTable_resampled_5m'},
-                    {'label': 'Cloudflare', 'value': 'tweetTable_AR_NET_rt'},
-                    {'label': 'Oracle OR ORCL', 'value': 'tweetTable_AR_ORCL_rt'},
-                    {'label': 'Pritzer OR PFE', 'value': 'tweetTable_AR_PFE_rt'},
-                    {'label': 'Ferrari', 'value': 'tweetTable_AR_RACE_rt'}
+                    {'label': 'Airbus', 'value': 'tweetTable_AR_AB_r'},
+                    {'label': 'AMC', 'value': 'tweetTable_AR_AMC_r'},
+                    {'label': 'Boeing', 'value': 'tweetTable_AR_BOEING_r'},
+                    {'label': 'Ford', 'value': 'tweetTable_AR_F_r'},
+                    {'label': 'Gilead OR GILD', 'value': 'tweetTable_AR_GILD_r'},
+                    {'label': 'Cloudflare', 'value': 'tweetTable_AR_NET_r'},
+                    {'label': 'Oracle OR ORCL', 'value': 'tweetTable_AR_ORCL_r'},
+                    {'label': 'Pfizer OR PFE', 'value': 'tweetTable_AR_PFE_r'},
+                    {'label': 'Ferrari', 'value': 'tweetTable_AR_RACE_r'},
+                    {'label': 'Toyota OR TOYOF', 'value': 'tweetTable_AR_TOYOF_r'}
                 ],
-                value='tweetTable_resampled_5m',
+                value='tweetTable_AR_NET_r',
                 clearable=False,
                 style = {
                         'width': '300px',
@@ -173,7 +178,52 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                         #'background-color' : colors["button_background"],
                         },
             ),
-        ]),  
+            html.Div(dcc.Input(
+                id='t-ma-long',
+                placeholder="MA [2min]",
+                type="number",
+                min=0, max=1000,
+                step=1,
+                value = 200,
+                style={
+                "color": colors["button_text"],
+                "width": "150px",
+                "text-align": "center",
+                "background-color": colors["button_background"],
+                "border": colors["button_border"],
+                "border": "2px solid " + colors["button_text"]
+                })
+            ),
+            html.Div(dcc.Input(
+                id='t-ma-short',
+                placeholder="MA [2min]",
+                type="number",
+                min=0, max=1000,
+                step=1,
+                value = 200,
+                style={
+                "color": colors["button_text"],
+                "width": "150px",
+                "text-align": "center",
+                "background-color": colors["button_background"],
+                "border": colors["button_border"],
+                "border": "2px solid " + colors["button_text"]
+                })
+            ),
+            html.Div(html.Button(
+                "Generate MA",
+                id='t-ma',
+                style={
+                    "color": colors["button_text"],
+                    "background-color": colors["button_background"],
+                    "border": "2px solid " + colors["button_text"]})
+            ),
+        ],
+        style = {
+            "display": "flex",
+            "flex-direction": "row"
+        },
+    ),  
     html.Div(
         [
             dcc.Checklist(
@@ -182,7 +232,9 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
                     {"label" : "Long MA TextBlob", "value" : "long_ma"},
                     {"label" : "Short MA TextBlob", "value" : "short_ma"},
                     {"label" : "Long MA Vader", "value" : "vader_ma_long"},
-                    {"label" : "Short MA Vader", "value" : "vader_ma_short"}
+                    {"label" : "Short MA Vader", "value" : "vader_ma_short"},
+                    {"label" : "Scatter TextBlob", "value" : "sentiment_textblob"},
+                    {"label" : "Scatter Vader", "value" : "sentiment_vader"}
                 ],
                 value = ["vader_ma_short"],
                 labelStyle = {"display" : "inline-block", "background-color": colors["button_background"], "color" : colors["button_text"], "border" : "black"}
@@ -195,34 +247,36 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
             dcc.Graph(id='chart-with-slider-tweetTable'),
             ])
         ]),
-    html.Div([
+    html.Div(
         dcc.Slider(
         id='year-slider-tweetTable',
         min=1593560870000000000,
         max=time.time()*10**9,
-        value=time.time()*10**9 - 259200*10**9,
+        value=(datetime.datetime.now() - relativedelta(days=20)).timestamp()*10**9,
         step=86400*10**9,
         #updatemode="mouseup",
         ),
-        html.Div(id="year-slider-value-tweetTable", style={
-            "color": colors["text"],
-            "textAlign": "center"
-            }),
-        ]),
+    ),
+    html.Div(id="year-slider-value-tweetTable", style={
+        "color": colors["text"],
+        "textAlign": "center"
+        }),
     dcc.Interval(
         id='interval-component-chart',
         interval=30*1000, # in milliseconds
         n_intervals=0
         ),
-    html.Div([html.P(id = "count-tweetTable",
+    html.Div(dcc.Loading(color=colors["text"], type="dot", children=[html.P(id = "count-tweetTable",
                     style={
                         "color": colors["text"]
                         }
                     ),
-                dcc.Interval(id='interval-component-count-tweetTable',
-                        interval=10*1000, # in milliseconds
-                        n_intervals=0)
-        ]),
+                ],
+            ),
+        style={
+            "width":"750px",
+        }
+    ),
     html.Div(
         children=[
             html.Div(dcc.Dropdown(
@@ -529,30 +583,36 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
             ),
         ],
     ),
-
-     html.Div(dcc.Loading(id='load-component-tweetGraph', color=colors["button_text"], children=[
-        dcc.Graph(id='chart-with-slider-news')]),
-        style = {
-            'width': '69%',
-            'text-align' : 'left',
-            'display' : 'inline-block'
-            }
-        ),
-    html.Div(dcc.Loading(html.Img(
-        id = "wordcloud_with_slider_news",
-        width = "100%")),
-        style = {
-            'flex-shrink':'1',
-            'width': '29%',
-            'display' : 'inline-block',
-            }
+    html.Div(
+        children=[
+            html.Div(dcc.Loading(id='load-component-tweetGraph', color=colors["button_text"], children=[
+                dcc.Graph(id='chart-with-slider-news')]),
+                style = {
+                    'width': '69%',
+                    'text-align' : 'left',
+                    'display' : 'inline-block'
+                    }
+                ),
+        html.Div(dcc.Loading(color=colors["button_text"], children=[html.Img(
+            id = "wordcloud_with_slider_news",
+            width = "100%")]),style = {
+                'flex-shrink':'1',
+                'flex-grow':'1',
+                'width': '29%',
+                'display' : 'inline-block',
+                })],
+            style = {
+                'display':'flex',
+                'width': '100%',
+                'align-items' : 'center',
+                },
     ),
     html.Div(
         dcc.Slider(
         id='year-slider-news',
         min=1594412760000000000,
         max=time.time()*10**9,
-        value=time.time()*10**9 - 864000*10**9,
+        value=(datetime.datetime.now() - relativedelta(days=20)).timestamp()*10**9,
         step=86400*10**9,
         ), style={'width': '69%','text-align' : 'left'}),
     html.Div(id="year-slider-value-news", style={
@@ -867,28 +927,28 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
             dcc.Dropdown(
                 id='bt-dropdown',
                 options=[
-                    {'label': 'News Airbus', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsAIRBUS.csv'},
-                    {'label': 'News AMC', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsAMC.csv'},
-                    {'label': 'News AZN OR AstraZeneca', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsAZN.csv'},
-                    {'label': 'News Cloudflare', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsNET.csv'},
-                    {'label': 'News Boeing', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsBOEING.csv'},
-                    {'label': 'News Ferrari', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsRACE.csv'},
-                    {'label': 'News Ford', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsF.csv'},
-                    {'label': 'News Oracle or ORCL', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsORCL.csv'},
-                    {'label': 'News PFE OR Pfizer', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsPFE.csv'},
-                    {'label': 'News Toyota', 'value': '/home/stepan/stranka/backtrader/stocks_data/newsTOYOF.csv'},
-                    {'label': 'Tweets Airbus', 'value': 'newsAIRBUS'},
-                    {'label': 'Tweets AMC', 'value': 'newsAMC'},
-                    {'label': 'Tweets Cloudflare', 'value': 'newsNET'},
-                    {'label': 'Tweets Boeing', 'value': 'newsBOEING'},
-                    {'label': 'Tweets Ferrari', 'value': 'newsRACE'},
-                    {'label': 'Tweets Ford', 'value': 'newsF'},
-                    {'label': 'Tweets GILD or Gilead or Remdesivir', 'value': 'newsGILD'},
-                    {'label': 'Tweets Oracle or ORCL', 'value': 'newsORCL'},
-                    {'label': 'Tweets PFE OR Pfizer', 'value': 'newsPFE'},
-                    {'label': 'Tweets Toyota', 'value': 'newsTOYOF'},
+                    {'label': 'News Airbus', 'value': '/home/stepan/stranka/backtrader/data_news/newsAIR.csv'},
+                    {'label': 'News AMC', 'value': '/home/stepan/stranka/backtrader/data_news/newsAMC.csv'},
+                    {'label': 'News AZN OR AstraZeneca', 'value': '/home/stepan/stranka/backtrader/data_news/newsAZN.csv'},
+                    {'label': 'News Boeing', 'value': '/home/stepan/stranka/backtrader/data_news/newsBA.csv'},
+                    {'label': 'News Ford', 'value': '/home/stepan/stranka/backtrader/data_news/newsF.csv'},
+                    {'label': 'News Cloudflare', 'value': '/home/stepan/stranka/backtrader/data_news/newsNET.csv'},
+                    {'label': 'News Oracle or ORCL', 'value': '/home/stepan/stranka/backtrader/data_news/newsORCL.csv'},
+                    {'label': 'News PFE OR Pfizer', 'value': '/home/stepan/stranka/backtrader/data_news/newsPFE.csv'},
+                    {'label': 'News Ferrari', 'value': '/home/stepan/stranka/backtrader/data_news/newsRACE.csv'},
+                    {'label': 'News Toyota', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterTOYOF.csv'},
+                    {'label': 'Tweets Airbus', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterAIR.csv'},
+                    {'label': 'Tweets AMC', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterAMC.csv'},
+                    {'label': 'Tweets Boeing', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterBA.csv'},
+                    {'label': 'Tweets Ford', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterF.csv'},
+                    {'label': 'Tweets Gilead', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterGILD.csv'},
+                    {'label': 'Tweets Cloudflare', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterNET.csv'},
+                    {'label': 'Tweets Oracle or ORCL', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterORCL.csv'},
+                    {'label': 'Tweets PFE OR Pfizer', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterPFE.csv'},
+                    {'label': 'Tweets Ferrari', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterRACE.csv'},
+                    {'label': 'Tweets Toyota', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterTOYOF.csv'},
                 ],
-                value='/home/stepan/stranka/backtrader/stocks_data/newsNET.csv',
+                value='/home/stepan/stranka/backtrader/data_news/newsNET.csv',
                 clearable=False,
                 style = {
                         'width': '300px',
@@ -1306,27 +1366,31 @@ def bt_chart_maker(n_clicks):
 #--------------------callback pro update grafu z MySQL tweetTable-----------------------
 @app.callback(
     Output('chart-with-slider-tweetTable', 'figure'),
-    [Input('year-slider-tweetTable', 'value'), #callback pro chart slider
+    [Input("t-ma" , "n_clicks"),
+     Input('year-slider-tweetTable', 'value'), #callback pro chart slider
+     Input('sentiment_ma', 'value'), #callback pro checklist
      #Input('interval-component-chart','n_intervals'), #callbak pro update grafu
      Input('twitter-dropdown', 'value'), #callback pro dropdown
-     Input('sentiment_ma', 'value') #callback pro checklist
+     dash.dependencies.State("t-ma-long" , "value"),
+     dash.dependencies.State("t-ma-short" , "value"),
      ]) 
 
-def update_tweetTable(selected_time, keyword, selector): #(n_intervals) pro auto update
+def update_tweetTable(n_clicks, selected_time, selector, keyword, t_ma_long, t_ma_short): #(n_intervals) pro auto update
     selected_time_datetime = datetime.datetime.fromtimestamp(selected_time/1000000000).replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
-    #print("twitter chart update, selected time=",selected_time_datetime)
     cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
                                   host='localhost',
                                   database='twitter',
                                   charset = 'utf8')    
     df_filtered = pd.read_sql('SELECT created_at, sentiment_textblob, volume, sentiment_vader FROM '+ keyword +' WHERE created_at >= "'+selected_time_datetime+'"ORDER BY created_at ASC', con=cnx)
     df_filtered = df_filtered.set_index(["created_at"])
-    df_filtered["ma_short"] = df_filtered.sentiment_textblob.rolling(window=10).mean()
-    df_filtered["ma_long"] = df_filtered.sentiment_textblob.rolling(window=100).mean()
-    df_filtered["vader_ma_short"] = df_filtered.sentiment_vader.rolling(window=10).mean()
-    df_filtered["vader_ma_long"] = df_filtered.sentiment_vader.rolling(window=100).mean()    
+    df_filtered["sentiment_textblob"] = df_filtered["sentiment_textblob"].fillna(method="ffill")
+    df_filtered["sentiment_vader"] = df_filtered["sentiment_vader"].fillna(method="ffill")
+    df_filtered["ma_short"] = df_filtered.sentiment_textblob.rolling(window=t_ma_short).mean()
+    df_filtered["ma_long"] = df_filtered.sentiment_textblob.rolling(window=t_ma_long).mean()
+    df_filtered["vader_ma_short"] = df_filtered.sentiment_vader.rolling(window=t_ma_short).mean()
+    df_filtered["vader_ma_long"] = df_filtered.sentiment_vader.rolling(window=t_ma_long).mean()    
     df_filtered['epoch'] = df_filtered.index.astype(np.int64)
-    df_volume_filtered = df_filtered.resample('30min').agg({'volume': np.sum})
+    df_volume_filtered = df_filtered.resample('60min').agg({'volume': np.sum})
     df_volume_filtered["epoch"] =  df_volume_filtered.index.astype(np.int64)
     #df_volume["MA"] = df_volume.volume.rolling(window=100).mean()
     #df_filtered = df[df.epoch > selected_time]
@@ -1339,22 +1403,22 @@ def update_tweetTable(selected_time, keyword, selector): #(n_intervals) pro auto
             row_heights=[0.8, 0.2],
             )
     if "sentiment_textblob" in selector:    
-        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_textblob"],marker_color="#ff8000", mode="markers", name="Sentiment TextBlob", marker={"size":4}, text=df_filtered["title"]) #*
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_textblob"],marker_color="#ff8000", mode="markers", name="Sentiment TextBlob", marker={"size":4}) #*
         fig.append_trace(scatter, 1, 1)
     if "sentiment_vader" in selector:    
-        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_vader"],marker_color="#ff0000", mode="markers", name="Sentiment Vader", marker={"size":4}, text=df_filtered["title"]) #*
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_vader"],marker_color="#ff0000", mode="markers", name="Sentiment Vader", marker={"size":4},) #*
         fig.append_trace(scatter, 1, 1)
     if "short_ma" in selector:
-        short_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_short"],line_color="#ffff00", mode="lines", name="Short MA TextBlob")
+        short_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_short"],line_color="#ffff00", mode="lines", name=str(t_ma_short*10)+"min TextBlob MA")
         fig.append_trace(short_ma, 1, 1)
     if "long_ma" in selector: 
-        long_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_long"], line_color="#00ffff", mode="lines", name="Long MA TextBlob")
+        long_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_long"], line_color="#00ffff", mode="lines", name=str(t_ma_long*10)+"min TextBlob MA")
         fig.append_trace(long_ma, 1, 1)
     if "vader_ma_short" in selector:
-        vader_ma_short = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_short"], line_color="#8000ff", mode="lines", name="10 news MA Vader")
+        vader_ma_short = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_short"], line_color="#8000ff", mode="lines", name=str(t_ma_short*10)+" min ader MA")
         fig.append_trace(vader_ma_short, 1, 1)
     if "vader_ma_long" in selector:    
-        vader_ma_long = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_long"], line_color="#ff007f", mode="lines", name="30 news MA Vader")          
+        vader_ma_long = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_long"], line_color="#ff007f", mode="lines", name=str(t_ma_long*10)+"min Vader MA")          
         fig.append_trace(vader_ma_long, 1, 1)
     volume = go.Bar(x=df_volume_filtered.index, y=df_volume_filtered["volume"], marker_color="#ff8000", name="2m Volume", text = df_volume_filtered["volume"])
     fig.append_trace(volume, 2, 1)
@@ -1576,7 +1640,7 @@ def update_wordcloud_news_html(selected_time, keyword):
     for key in tmpDict:
         fullTermsDict.add(key, tmpDict[key])
 
-    wordcloud = WordCloud(height=500, width=500, background_color="white", contour_color='white', colormap="magma").generate_from_frequencies(fullTermsDict)
+    wordcloud = WordCloud(height=500, width=500, background_color="black", contour_color='white', colormap="Pastel1").generate_from_frequencies(fullTermsDict)
     buf = io.BytesIO() # in-memory files
     plt.figure()
     plt.imshow(wordcloud, interpolation="bilinear")
@@ -1661,33 +1725,33 @@ def update_reddit_figure(selected_time, n_interval, reddit, selector):
 
 #--------------------twitter callback pro update "Database contains ... rows"-------------------
 @app.callback(Output("count-tweetTable", "children"),
-             [Input('twitter-dropdown', 'value'),
-              Input("interval-component-count-tweetTable", "n_intervals")])
-def count_row(keyword, n_intervals):
+             [Input('t-database', 'value')])
+def count_row(keyword):
     cnx = mysql.connector.connect(user=kody.mysql_username, password=kody.mysql_password,
                                   host='localhost',
                                   database='twitter',
                                   charset = 'utf8')
     cursor = cnx.cursor()
-    if keyword == "tweetTable_resampled_5m":
-        keyword = "tweetTable"
-    if keyword == "tweetTable_AR_NET_rt":
-        keyword = "tweetTable_AR_NET"    
-    if keyword == "tweetTable_AR_ORCL_rt":
-        keyword = "tweetTable_AR_ORCL"
-    if keyword == "tweetTable_AR_PFE_rt":
-        keyword = "tweetTable_AR_PFE"
-    if keyword == "tweetTable_AR_RACE_rt":
-        keyword = "tweetTable_AR_RACE"
     cursor.execute("""
                    SELECT COUNT(*) 
                    FROM """+ keyword +""";
                    """
                    )
     count = str(cursor.fetchone()[0])
+    cursor.execute("""SELECT created_at FROM """+ keyword +""" ORDER BY created_at ASC LIMIT 1""")
+    cursor.close
+    for firstrow in cursor.fetchall():
+        firstresult = firstrow
+    datetime_from = firstresult[0].strftime('%Y-%m-%d %H:%M:%S')
+    cursor.execute("""SELECT created_at FROM """+ keyword +""" ORDER BY created_at DESC LIMIT 1""")
+    for lastrow in cursor.fetchall():
+        lastresult = lastrow
+    datetime_to = lastresult[0].strftime('%Y-%m-%d %H:%M:%S')
     p = "Database contains "
-    p3 = " rows "
-    info = "".join([p,count,p3])
+    p3 = " rows; "
+    datetime_fromtext = "  Since: "
+    datetime_totext = ";  Until: "
+    info = "".join([p,count,p3,datetime_fromtext,datetime_from,datetime_totext,datetime_to])
     return info
 
 #--------------------news callback pro update "Database contains ... rows"-------------------
@@ -1716,9 +1780,9 @@ def count_row(news, n_intervals):
         lastresult = lastrow
     datetime_to = lastresult[0].strftime('%Y-%m-%d %H:%M:%S')
     p = "Database contains "
-    p3 = " rows "
-    datetime_fromtext = "Since: "
-    datetime_totext = " Until: "
+    p3 = " rows;"
+    datetime_fromtext = "  Since: "
+    datetime_totext = ";  Until: "
     info = "".join([p,count,p3,datetime_fromtext,datetime_from,datetime_totext,datetime_to])
     return info
 

@@ -289,7 +289,35 @@ legend {
 fieldset {
   padding: 0;
   border-width: 0; }
-input[type="checkbox"],
+
+
+input[type=checkbox] {
+    vertical-align: middle;
+    cursor: pointer;
+  }
+  input[type=checkbox]:before {
+    vertical-align: middle;
+    content: "";
+    display: inline-block;
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #ff8000;
+    border-radius: 4px;
+    background-color: black; }
+
+  input[type=checkbox]:checked:after {
+    vertical-align: middle;
+    content: "";
+    display: inline-block;
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 2px solid#ff8000;
+    border-radius: 4px;
+    background-color: #01ff70; }
+
+
 input[type="radio"] {
   display: inline; }
 label > .label-body {
@@ -511,3 +539,8 @@ there.
 
 .rc-slider-step {
   background: #ff8000; }
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner table {
+border-collapse: collapse;
+font-family: monospace;
+--accent:#ff8000; }

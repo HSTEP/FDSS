@@ -56,13 +56,13 @@ class listener(tweepy.streaming.StreamListener):
             new_datetime = datetime.strftime(datetime.strptime(time, '%a %b %d %H:%M:%S +0000 %Y'),
                                              '%Y-%m-%d %H:%M:%S')
             cursor.execute(
-                "INSERT INTO tweetTable (time, username, tweet, followers, sentiment, sentiment_vader) VALUES (%s,%s,%s,%s,%s,%s)",
+                "INSERT INTO tweetTable (created_at, username, tweet, followers_count, sentiment_textblob, sentiment_vader) VALUES (%s,%s,%s,%s,%s,%s)",
                 (new_datetime, username, raw_tweet, followers, sentiment, sentiment_vader))
 
             kody.cnx.commit()
 
             #print(all_data["retweeted"], all_data["truncated"])
-            print((username, raw_tweet))
+            #print((username, raw_tweet))
             is_it_running()
             return True
 
@@ -91,10 +91,10 @@ for tweet in tweets_search:
         sentiment_vader = vader["compound"]
 
         cursor.execute(
-                "INSERT INTO tweetTable (time, username, tweet, followers, sentiment, sentiment_vader) VALUES (%s,%s,%s,%s,%s,%s)",
+                "INSERT INTO tweetTable (created_at, username, tweet, followers_count, sentiment_textblob, sentiment_vader) VALUES (%s,%s,%s,%s,%s,%s)",
                 (tweet.created_at, tweet.author.screen_name, clean_tweet(tweet_searched), tweet.author.followers_count, searched_sentiment, sentiment_vader))
         kody.cnx.commit() 
-    print(tweet.author.screen_name, clean_tweet(tweet_searched), tweet.created_at)
+    #print(tweet.author.screen_name, clean_tweet(tweet_searched), tweet.created_at)
 
 def is_it_running():
     script_name = "twitter.py"
