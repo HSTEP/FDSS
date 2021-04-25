@@ -5,43 +5,7 @@ import kody
 import numpy as np
 import plotly.express as px
 
-#def bt_data(ticker,intervl):
-#    """
-#    ticker = stock name = "NET"
-#    intervl = candle duration = 2m = dvouminutová svíčka
-#    """
-#    stock = yf.Ticker(ticker)
-#    data = stock.history(start="2021-04-13", interval=intervl)
-#    # remove timezone:
-#    data.index = data.index.tz_convert(tz=None)
-#    data.resample("30min")
-#    print(data)
-#    # data.index = pd.to_datetime(data.index.astype(str), format="%Y.%m.%d %H:%M:%S"),
-#    ###twitter = pd.read_sql("""
-#    ###                        SELECT 
-#    ###                            time, sentiment, sentiment_vader 
-#    ###                        FROM 
-#    ###                            tweetTable_resampled_5m 
-#    ###                        WHERE 
-#    ###                            (time >= "2021-01-07 14:30:00" ) AND (time <  "2021-02-24 20:58:00") 
-#    ###                        ORDER BY 
-#    ###                            time ASC
-#    ###                        """, 
-#    ###                        con=kody.cnx)
-#
-#    data_frame = pd.read_sql('SELECT published, sentiment, sentiment_vader FROM newsNET WHERE published > "2021-04-13 00:00:00" ORDER BY published DESC', con=kody.cnx)
-#    data_frame = data_frame.set_index(['published']) #aby fungovalo data_frame.resample
-#    print(data_frame)
-#    data_frame["volume"] = 1    #u každého tweetu přidá řádek s volume -> 1 řádek = 1 tweet, proto 1
-#    df_mean = data_frame.resample("30min").agg({'sentiment_vader': np.mean, 'sentiment': np.mean,'volume': np.sum})    #to dělám aby candlestick něměly high=1 a low=0
-#    print(df_mean)
-#    ###twitter = twitter.set_index("time")
-#    data = data.join(df_mean)
-#    data = data.interpolate(method='polynomial', order=2)
-#    #data = data.fillna(0)
-#    return data
-
-def bt_data_sentiment_interpolate(database, time_from,resampling):
+def bt_data_sentiment_interpolate_news(database, time_from,resampling):
     """
     database = ("newsNET")
 
@@ -50,17 +14,24 @@ def bt_data_sentiment_interpolate(database, time_from,resampling):
     resampling = period for resampling DB data = ("2min")
     """
 
-    data_frame = pd.read_sql("SELECT published, sentiment, sentiment_vader FROM "+ database +" WHERE published > \""+ time_from +"\" ORDER BY published DESC", con=kody.cnx)
-    data_frame = data_frame.set_index(['published']) #aby fungovalo data_frame.resample
-    print(data_frame)
-    data_frame["volume"] = 1    #u každého tweetu přidá řádek s volume -> 1 řádek = 1 tweet, proto 1
-    df_mean = data_frame.resample(""+resampling+"in").agg({'sentiment_vader': np.average, 'sentiment': np.average,'volume': np.sum})    #to dělám aby candlestick něměly high=1 a low=0
-    df_mean = df_mean.interpolate(method='polynomial', order = 2)
-    df_mean["sentiment_vader"].clip(lower=-1,upper=1, inplace = True)
-    print(df_mean)
-    return df_mean
+    df = pd.read_sql("SELECT published, sentiment, sentiment_vader FROM "+ database +" WHERE published > \""+ time_from +"\" ORDER BY published DESC", con=kody.cnx)
+    df = df.set_index(['published']) #aby fungovalo df.resample
+    print(df)
+    df["volume"] = 1    #u každého tweetu přidá řádek s volume -> 1 řádek = 1 tweet, proto 1
+    df = df.resample(""+resampling+"in").agg(
+                                    {'sentiment_vader': np.mean, 
+                                    'sentiment': np.average,
+                                    'volume': np.sum})   
+    #df_mean = df.interpolate(method='linear')
+    df["sentiment"] = df["sentiment"].fillna(method="ffill")
+    df["sentiment_vader"] = df["sentiment_vader"].fillna(method="ffill")
+    df.to_csv("/Users/stepan/OneDrive/Diplomka/python/interpolacenebofillna.csv")
+    #df_mean["sentiment"].clip(lower=-1,upper=1, inplace = True)
+    #df_mean["sentiment_vader"].clip(lower=-1,upper=1, inplace = True)
+    #print(df_mean)
+    return df
 
-def get_bt_data(ticker, database, time_from,interval):
+def get_bt_data_news(ticker, database, time_from,interval):
     """
     ticker = ("NET")
 
@@ -74,23 +45,91 @@ def get_bt_data(ticker, database, time_from,interval):
     # remove timezone:
     data.index = data.index.tz_convert(tz="UTC")
     data.index = data.index.tz_convert(tz=None)
-    data = data.join(bt_data_sentiment_interpolate(database, time_from, interval))
-    data[["Open","High","Low", "Close", "sentiment", "sentiment_vader"]].to_csv("stocks_data/"+database+".csv")
+    data = data.join(bt_data_sentiment_interpolate_news(database, time_from, interval))
+    #data[["Open","High","Low", "Close", "sentiment", "sentiment_vader"]].to_csv("backtrader/twitter_data/twitter"+ticker+".csv")
     print(data)
-    #fig = px.line(x=data.index, y=data["sentiment_vader"])
-    #fig.show()
-
+    fig = px.line(x=data.index, y=data["sentiment"])
+    fig.show()
     return
 
-get_bt_data("AIR", "newsAIRBUS", "2021-02-21", "2m")
-get_bt_data("AMC", "newsAMC", "2021-02-21", "2m")
-get_bt_data("AZN", "newsAMC", "2021-02-21", "2m")
-get_bt_data("BA", "newsBOEING", "2021-02-21", "2m")
-get_bt_data("F", "newsF", "2021-02-21", "2m")
-get_bt_data("NET", "newsNET", "2021-02-21", "2m")
-get_bt_data("ORCL", "newsORCL", "2021-02-21", "2m")
-get_bt_data("PFE", "newsPFE", "2021-02-21", "2m")
-get_bt_data("RACE", "newsRACE", "2021-02-21", "2m")
-get_bt_data("TOYOF", "newsTOYOF", "2021-02-21", "2m")
+def bt_data_sentiment_interpolate_twitter(database, time_from,resampling):
+    """
+    database = ("newsNET")
+
+    time_from = selecting from DB since time_from = ("2021-02-21 00:00:00")
+
+    resampling = period for resampling DB data = ("2min")
+    """
+
+    df = pd.read_sql("SELECT created_at, sentiment_textblob, sentiment_vader FROM "+ database +" WHERE created_at > \""+ time_from +"\" ORDER BY created_at DESC", con=kody.cnx)
+    df = df.set_index(['created_at']) #aby fungovalo df.resample
+    print(df)
+    df["volume"] = 1    #u každého tweetu přidá řádek s volume -> 1 řádek = 1 tweet, proto 1
+    df = df.resample(""+resampling+"in").agg(
+                                    {'sentiment_vader': np.mean, 
+                                    'sentiment_textblob': np.average,
+                                    'volume': np.sum})   
+    #df_mean = df.interpolate(method='linear')
+    df["sentiment_textblob"] = df["sentiment_textblob"].fillna(method="ffill")
+    df["sentiment_vader"] = df["sentiment_vader"].fillna(method="ffill")
+    df.to_csv("/Users/stepan/OneDrive/Diplomka/python/interpolacenebofillna.csv")
+    #df_mean["sentiment_textblob"].clip(lower=-1,upper=1, inplace = True)
+    #df_mean["sentiment_vader"].clip(lower=-1,upper=1, inplace = True)
+    #print(df_mean)
+    return df
+
+def get_bt_data_twitter(ticker, database, time_from,interval):
+    """
+    ticker = ("NET")
+
+    time_from = ("2021-02-21")
+
+    intervl = ("2m")
+    """
+
+    stock = yf.Ticker(ticker)
+    data = stock.history(start=time_from, interval=interval)
+    # remove timezone:
+    data.index = data.index.tz_convert(tz="UTC")
+    data.index = data.index.tz_convert(tz=None)
+    data = data.join(bt_data_sentiment_interpolate_twitter(database, time_from, interval))
+    #data[["Open","High","Low", "Close", "sentiment_textblob", "sentiment_vader"]].to_csv("backtrader/twitter_data/twitter"+ticker+".csv")
+    print(data)
+    fig = px.line(x=data.index, y=data["sentiment_vader"])
+    fig.show()
+    return
+
+def get_data_news():
+    get_bt_data_news("AIR", "newsAIRBUS", "2021-02-24", "2m")
+    get_bt_data_news("AMC", "newsAMC", "2021-02-24", "2m")
+    get_bt_data_news("AZN", "newsAZN", "2021-02-24", "2m")
+    get_bt_data_news("BA", "newsBOEING", "2021-02-24", "2m")
+    get_bt_data_news("F", "newsF", "2021-02-24", "2m")
+    get_bt_data_news("NET", "newsNET", "2021-02-24", "2m")
+    get_bt_data_news("ORCL", "newsORCL", "2021-02-24", "2m")
+    get_bt_data_news("PFE", "newsPFE", "2021-02-24", "2m")
+    get_bt_data_news("RACE", "newsRACE", "2021-02-24", "2m")
+    get_bt_data_news("TOYOF", "newsTOYOF", "2021-02-24", "2m")
+    return
+
+
+def get_data_twitter():
+    get_bt_data_twitter("AIR", "tweetTable_AR_AB", "2021-02-24", "2m")
+    get_bt_data_twitter("AMC", "tweetTable_AR_AMC", "2021-02-24", "2m")
+    get_bt_data_twitter("GILD", "tweetTable_AR_GILD", "2021-02-24", "2m")
+    get_bt_data_twitter("BA", "tweetTable_AR_BOEING", "2021-02-24", "2m")
+    get_bt_data_twitter("F", "tweetTable_AR_F", "2021-02-24", "2m")
+    get_bt_data_twitter("NET", "tweetTable_AR_NET", "2021-02-24", "2m")
+    get_bt_data_twitter("ORCL", "tweetTable_AR_ORCL", "2021-02-24", "2m")
+    get_bt_data_twitter("PFE", "tweetTable_AR_PFE", "2021-02-24", "2m")
+    get_bt_data_twitter("RACE", "tweetTable_AR_RACE", "2021-02-24", "2m")
+    get_bt_data_twitter("TOYOF", "tweetTable_AR_TOYOF", "2021-02-24", "2m")
+    return
+
+def get_data_test():
+    get_bt_data_news("NET", "newsNET", "2021-02-25", "2m")
+    return
+
+get_data_test()
 
 #bt_data("NET", "30m")[["Open","High","Low", "Close", "sentiment", "sentiment_vader"]].to_csv('csv_TEST.csv')
