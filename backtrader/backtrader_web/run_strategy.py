@@ -5,7 +5,7 @@ from datetime import datetime
 
 import backtrader as bt
 
-from strategy import MA_cross_Sentiment, MA_controll_strategy
+from strategy import MA_cross_Sentiment, MA_control_strategy, sentiment_0_strategy
 
 cmd_params = {}
 for arg in sys.argv[1:]:
@@ -30,7 +30,7 @@ class GenericCSV_X(bt.feeds.GenericCSVData):
 
 
 data = GenericCSV_X(
-    dataname="/home/stepan/stranka/backtrader/stocks_data/newsNET.csv" if "file" not in cmd_params else cmd_params["file"],
+    dataname="/home/stepan/stranka/backtrader/data_news/newsNET.csv" if "file" not in cmd_params else cmd_params["file"],
     dtformat="%Y-%m-%d %H:%M:%S",
     datetime=0,
     high=2,
@@ -53,7 +53,7 @@ if "strat_id" not in cmd_params:
     cerebro.addstrategy(MA_cross_Sentiment)
 else:
     # With valid amount of arguments
-    strategies = [MA_cross_Sentiment, MA_controll_strategy]
+    strategies = [MA_cross_Sentiment, MA_control_strategy, sentiment_0_strategy]
     cerebro.addstrategy(strategies[int(cmd_params["strat_id"])], **cmd_params)
 # fixed number of assets to buy
 # cerebro.addsizer(bt.sizers.FixedSize, stake = stake)

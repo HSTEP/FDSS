@@ -981,7 +981,7 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                                 id='bt-strategy',
                                 placeholder="Select Strategy",
                                 type="number",
-                                min=0, max=1,
+                                min=0, max=2,
                                 step=1,
                                 style={
                                     "color": colors["button_text"],
@@ -1132,6 +1132,7 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                         id='bt-chart-button',
                         style={
                             "width" : 685,
+                            "margin-bottom" : "30px",
                             "background-color": "red",
                             "color": colors["button_text"],
                             "background-color": colors["button_background"],
@@ -1640,7 +1641,7 @@ def update_wordcloud_news_html(selected_time, keyword):
     for key in tmpDict:
         fullTermsDict.add(key, tmpDict[key])
 
-    wordcloud = WordCloud(height=500, width=500, background_color="black", contour_color='white', colormap="Pastel1").generate_from_frequencies(fullTermsDict)
+    wordcloud = WordCloud(height=500, width=500, background_color="black", contour_color='white', colormap="Set1").generate_from_frequencies(fullTermsDict)
     buf = io.BytesIO() # in-memory files
     plt.figure()
     plt.imshow(wordcloud, interpolation="bilinear")

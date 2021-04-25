@@ -24,15 +24,18 @@ def bt_make_chart():
         df = df.set_index("datetime")
     df = df.replace(r'^\s*$', np.nan, regex=True)
 
-    cols = []
-    count = 1
-    for column in df.columns:
-        if column == 'sma':
-            cols.append(f'sma{count}')
-            count+=1
-            continue
-        cols.append(column)
-    df.columns = cols
+    try:
+        cols = []
+        count = 1
+        for column in df.columns:
+            if column == 'sma':
+                cols.append(f'sma{count}')
+                count+=1
+                continue
+            cols.append(column)
+        df.columns = cols
+    except:
+        pass
 
     fig = make_subplots(rows=4, 
             cols=1, 
@@ -69,17 +72,24 @@ def bt_make_chart():
                             size=10,))
     fig.append_trace(fig_sell, 1, 1)
 
-    fig_sma1 = go.Scatter(x = df.index,
-                        y = df["sma1"].astype(float),
-                        mode = 'lines',
-                        name="Slow MA",)
-    fig.append_trace(fig_sma1, 2, 1)
+    try:
+        fig_sma1 = go.Scatter(x = df.index,
+                            y = df["sma1"].astype(float),
+                            mode = 'lines',
+                            name="Slow MA",)
+        fig.append_trace(fig_sma1, 2, 1)
 
-    fig_sma2 = go.Scatter(x = df.index,
-                        y = df["sma2"].astype(float),
-                        mode = 'lines',
-                        name="Fast MA",)
-    fig.append_trace(fig_sma2, 2, 1)
+        fig_sma2 = go.Scatter(x = df.index,
+                            y = df["sma2"].astype(float),
+                            mode = 'lines',
+                            name="Fast MA",)
+        fig.append_trace(fig_sma2, 2, 1)
+    except:
+        fig_sentiment = go.Scatter(x = df.index,
+                            y = df["sentiment"].astype(float),
+                            mode = 'lines',
+                            name="sentiment",)
+        fig.append_trace(fig_sentiment, 2, 1)
 
     fig_value = go.Scatter(x = df.index,
                         y = df["value"].astype(float),
@@ -100,15 +110,16 @@ def bt_make_chart():
             {'pattern': 'hour', 'bounds':[21,13]}
         ])
 
-    fig["layout"].update(title_text="Backtest restult",
-                        #template="plotly_dark", 
+    fig["layout"].update(title_text="Backtest restult for: "+str((df.iloc[1:1, 10:11]).to_json())[2:-5],
+                        title_font_color="#01ff70",
+                        template="plotly_dark", 
                         legend_title_text="Legenda: ", 
                         legend_orientation="h", 
-                        #legend=dict(x=0, y=-0.13),
-                        #transition_duration=0,
+                        #legend=dict(x=0, y=0.13),
+                        transition_duration=0,
                         margin=dict(l=0, r=0, t=20, b=0),
-                        #paper_bgcolor="black",
-                        #plot_bgcolor="white",
+                        paper_bgcolor="#663300",
+                        plot_bgcolor="black",
                         title={
                             "yref": "paper",
                             "y" : 1,
