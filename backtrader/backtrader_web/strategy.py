@@ -334,7 +334,6 @@ class MA_control_strategy(bt.Strategy):
 
 class sentiment_0_strategy(bt.Strategy):
     params = dict(
-        period_long=196,
         period_short=21,
         stop_loss= 1,
         take_profit=8
@@ -350,6 +349,13 @@ class sentiment_0_strategy(bt.Strategy):
             self.params.stop_loss = kwargs["stopLoss"]
         if "takeProfit" in kwargs:
             self.params.take_profit = kwargs["takeProfit"]
+        if "shortMA" in kwargs:
+            self.params.period_short = kwargs["shortMA"]
+
+        self.sma_sentiment = bt.indicators.SimpleMovingAverage(
+            self.data.lines.sentiment, period=self.params.period_short
+        )
+        self.sma_sentiment.csv=True
 
         self.orefs = list()
         self.order = None
@@ -446,7 +452,7 @@ class sentiment_0_strategy(bt.Strategy):
             return
 
         if (
-            self.data.lines.sentiment[-1] >= 0
+            self.sma_sentiment[-1] >= 0
             and self.position.size < 1
             and self.can_buy
         ):
@@ -454,7 +460,7 @@ class sentiment_0_strategy(bt.Strategy):
             return
 
         elif (
-            self.data.lines.sentiment[-1] < 0
+            self.sma_sentiment[-1] < 0
             and self.position.size > -1
             and self.can_sell
         ):

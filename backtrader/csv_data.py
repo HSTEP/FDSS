@@ -4,8 +4,9 @@ import sys
 import kody
 import numpy as np
 import plotly.express as px
+from datetime import timedelta
 
-def bt_data_sentiment_interpolate_news(database, time_from,resampling):
+def bt_data_sentiment_ffill_news(database, time_from,resampling):
     """
     database = ("newsNET")
 
@@ -45,14 +46,14 @@ def get_bt_data_news(ticker, database, time_from,interval):
     # remove timezone:
     data.index = data.index.tz_convert(tz="UTC")
     data.index = data.index.tz_convert(tz=None)
-    data = data.join(bt_data_sentiment_interpolate_news(database, time_from, interval))
+    data = data.join(bt_data_sentiment_ffill_news(database, time_from, interval))
     #data[["Open","High","Low", "Close", "sentiment", "sentiment_vader"]].to_csv("backtrader/twitter_data/twitter"+ticker+".csv")
     print(data)
     fig = px.line(x=data.index, y=data["sentiment"])
     fig.show()
     return
 
-def bt_data_sentiment_interpolate_twitter(database, time_from,resampling):
+def bt_data_sentiment_ffill_twitter(database, time_from,resampling):
     """
     database = ("newsNET")
 
@@ -63,6 +64,7 @@ def bt_data_sentiment_interpolate_twitter(database, time_from,resampling):
 
     df = pd.read_sql("SELECT created_at, sentiment_textblob, sentiment_vader FROM "+ database +" WHERE created_at > \""+ time_from +"\" ORDER BY created_at DESC", con=kody.cnx)
     df = df.set_index(['created_at']) #aby fungovalo df.resample
+    df.index = df.index - timedelta(days=1) #časová prodleva
     print(df)
     df["volume"] = 1    #u každého tweetu přidá řádek s volume -> 1 řádek = 1 tweet, proto 1
     df = df.resample(""+resampling+"in").agg(
@@ -72,7 +74,7 @@ def bt_data_sentiment_interpolate_twitter(database, time_from,resampling):
     #df_mean = df.interpolate(method='linear')
     df["sentiment_textblob"] = df["sentiment_textblob"].fillna(method="ffill")
     df["sentiment_vader"] = df["sentiment_vader"].fillna(method="ffill")
-    df.to_csv("/Users/stepan/OneDrive/Diplomka/python/interpolacenebofillna.csv")
+    #df.to_csv("/Users/stepan/OneDrive/Diplomka/python/interpolacenebofillna.csv")
     #df_mean["sentiment_textblob"].clip(lower=-1,upper=1, inplace = True)
     #df_mean["sentiment_vader"].clip(lower=-1,upper=1, inplace = True)
     #print(df_mean)
@@ -92,11 +94,11 @@ def get_bt_data_twitter(ticker, database, time_from,interval):
     # remove timezone:
     data.index = data.index.tz_convert(tz="UTC")
     data.index = data.index.tz_convert(tz=None)
-    data = data.join(bt_data_sentiment_interpolate_twitter(database, time_from, interval))
+    data = data.join(bt_data_sentiment_ffill_twitter(database, time_from, interval))
     #data[["Open","High","Low", "Close", "sentiment_textblob", "sentiment_vader"]].to_csv("backtrader/twitter_data/twitter"+ticker+".csv")
-    print(data)
-    fig = px.line(x=data.index, y=data["sentiment_vader"])
-    fig.show()
+    #print(data)
+    #fig = px.line(x=data.index, y=data["sentiment_vader"])
+    #fig.show()
     return
 
 def get_data_news():
@@ -127,7 +129,7 @@ def get_data_twitter():
     return
 
 def get_data_test():
-    get_bt_data_news("NET", "newsNET", "2021-02-25", "2m")
+    get_bt_data_twitter("NET", "tweetTable_AR_NET", "2021-03-05", "2m")
     return
 
 get_data_test()

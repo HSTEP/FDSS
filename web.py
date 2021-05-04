@@ -5,6 +5,7 @@ import dash_table
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import plotly.io
 import pandas as pd
 import kody
 from dash_table.Format import Format, Scheme, Sign, Symbol
@@ -17,7 +18,6 @@ import time
 from dateutil.relativedelta import relativedelta
 #from layouts import portfolio
 import mysql.connector
-
 import multidict as multidict
 from wordcloud import WordCloud
 import matplotlib
@@ -89,30 +89,6 @@ def get_data_reddit_volume(table_name):
     df_volume["MA"] = df_volume.volume.rolling(window=10).mean()
     return df_volume
 
-#def get_data(table_name):
-#    data_frame = pd.read_sql('SELECT time, username, tweet, followers,  sentiment, sentiment_vader FROM '+ table_name +' ORDER BY time ASC', con=kody.cnx)
-#    data_frame["ma_short"] = data_frame.sentiment.rolling(window=1000).mean()
-#    data_frame["ma_long"] = data_frame.sentiment.rolling(window=10000).mean()
-#    data_frame["vader_ma_short"] = data_frame.sentiment_vader.rolling(window=10).mean()
-#    data_frame["vader_ma_long"] = data_frame.sentiment_vader.rolling(window=100).mean()    
-#    data_frame['epoch'] = data_frame['time'].astype(np.int64)
-#    data_frame = data_frame.iloc[::100] #zobrazí každý n-tý bod v data-framu
-#    print("Get data called on ", table_name, " at: ", time.time())
-#    return data_frame
-#print("dataframetweetTable",get_data("tweetTable")["time"])
-
-#gild = yf.download("GILD")
-#data_gild = pd.DataFrame(data=gild)
-#
-#fig_gild = px.scatter(render_mode="webgl")
-#fig_gild.add_scatter(y=data_gild["Close"], mode="lines", name="Gild closing price")
-#fig_gild.update_layout(title_text="GILD stock price",
-#                    title_x=0.5,
-#                    template="plotly_dark", 
-#                    legend_title_text="", 
-#                    legend_orientation="h", 
-#                    legend=dict(x=0, y=1))
-
 now_minus_one_hour = dt.now() - relativedelta(hours=1)
 data_frame_is_it_running = pd.read_sql('SELECT script, time FROM running_scripts ORDER BY time ASC', con=kody.cnx)
 data_frame_is_it_running["status"] = np.where(data_frame_is_it_running["time"] > now_minus_one_hour, "YES","NO")
@@ -122,8 +98,21 @@ app.layout = html.Div([
     html.Div(id='page-content')
 ])
 
-index = html.Div(style={"backgroundColor": "black"},children=[
-    html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+index = html.Div(
+    style={"backgroundColor": "black"},children=[
+    html.Button(
+        dcc.Link(
+            'Twitter sentiment', 
+            href='/twitter_sentiment',
+            style={
+                "color" : colors["button_text"]
+                }
+        ), 
+        style={
+            "background-color" : colors["button_background"], 
+            "border" : colors["button_border"]
+        }
+    ),
     html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Reddit Sentiment', href='/reddit_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Backtesting', href='/backtesting', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"],"float": "right"}),
@@ -135,9 +124,11 @@ index = html.Div(style={"backgroundColor": "black"},children=[
         "textAlign": "center"
         }),
     html.Button(html.A('GitHub Code', href='https://github.com/HSTEP/twitter_sentiment', target='_blank'), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(html.A('backtesting_results', href='/backtesting_results'), style={"background-color" : colors["button_background"], "border" : colors["button_border"], "float":"right"}),
 ])
 
-twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, children=[
+twitter_sentiment = html.Div(
+    style={"backgroundColor": colors["background"]}, children=[
     
     html.Div(id='page-1-content'),
     html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
@@ -525,7 +516,8 @@ twitter_sentiment = html.Div(style={"backgroundColor": colors["background"]}, ch
         #                 })
 ])
 
-GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
+news_sentiment = html.Div(
+    style={"backgroundColor": "black"},children=[
     html.Div(id='page-2-content'),
     html.Button(dcc.Link('index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
@@ -722,7 +714,8 @@ GILD_sentiment = html.Div(style={"backgroundColor": "black"},children=[
     )
 ])
 
-reddit_layout = html.Div(style={"backgroundColor": "black"},children=[
+reddit_layout = html.Div(
+    style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
@@ -910,7 +903,8 @@ reddit_layout = html.Div(style={"backgroundColor": "black"},children=[
     )
 ])
 
-backtesting = html.Div(style={"backgroundColor": "black"}, children=[
+backtesting = html.Div(
+    style={"backgroundColor": "black"}, children=[
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"]}),
     html.Button(dcc.Link('News Sentiment', href='/news_sentiment', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"]}),
     html.Button(dcc.Link('Reddit Sentiment', href='/reddit_sentiment', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"]}),
@@ -973,7 +967,7 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                         children=[
                             html.Div(id="bt-strategy-text",
                                      style={
-                                         "color": colors["text"],
+                                         "color": colors["button_text"],
                                          "margin-left": "13px",
                                      }
                                      ),
@@ -1003,7 +997,7 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                                 id='short-ma',
                                 placeholder="Short MA Period",
                                 type="number",
-                                min=0, max=100000,
+                                min=1, max=100000,
                                 step=1,
                                 style={
                                     "color": colors["button_text"],
@@ -1025,7 +1019,7 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                                 id='long-ma',
                                 placeholder="Long MA Period",
                                 type="number",
-                                min=0, max=100000,
+                                min=1, max=100000,
                                 step=1,
                                 style={
                                     "color": colors["button_text"],
@@ -1047,7 +1041,7 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                                 id='stop-loss',
                                 placeholder="Stop-Loss [%]",
                                 type="number",
-                                min=0, max=100,
+                                min=0, max=10000,
                                 step=0.1,
                                 style={
                                     "color": colors["button_text"],
@@ -1069,7 +1063,7 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
                                 id='take-profit',
                                 placeholder="Take-Profit [%]",
                                 type="number",
-                                min=0, max=100,
+                                min=0, max=10000,
                                 step=0.1,
                                 style={
                                     "color": colors["button_text"],
@@ -1153,11 +1147,13 @@ backtesting = html.Div(style={"backgroundColor": "black"}, children=[
         }),
 ]),
 
-running_scripts = html.Div(style={"backgroundColor": "black"},children=[
+running_scripts = html.Div(
+    style={"backgroundColor": "black"},children=[
     html.Button(dcc.Link('Index', href='/',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Twitter sentiment', href='/twitter_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('News Sentiment', href='/news_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
     html.Button(dcc.Link('Reddit Sentiment', href='/reddit_sentiment',style={"color" : colors["button_text"]}), style={"background-color" : colors["button_background"], "border" : colors["button_border"]}),
+    html.Button(dcc.Link('Backtesting', href='/backtesting', style={"color": colors["button_text"]}),style={"background-color": colors["button_background"], "border": colors["button_border"],"float": "right"}),
     html.H1(
     children='Running Scripts',
     style={
@@ -1240,6 +1236,19 @@ running_scripts = html.Div(style={"backgroundColor": "black"},children=[
     ) 
 ])
 
+backtesting_results = html.Div([
+    dcc.Tabs(id='tabs', value='b-311-1', children=[
+        dcc.Tab(label='Strategie MA sentimentu opt. 1',  value = 'b-311-1', selected_style={"font-weight": "bold"}),
+        dcc.Tab(label='Strategie MA sentimentu opt. 2',  value = 'b-311-2', selected_style={"font-weight": "bold"}),
+        dcc.Tab(label='3.1.3 Druhá kontrolní strategie',  value = 'b-313', selected_style={"font-weight": "bold"}),
+    ],colors={
+        "border": "white",
+        "background": "#f1b450"
+        }
+    ),
+    dcc.Loading(color=colors["button_text"], children=[html.Div(id='backtesting-results')]),
+])
+
 #--------------------callback pro otevření cesty k jiné Dash stránce--------------------
 @app.callback(dash.dependencies.Output('page-content', 'children'),
               [dash.dependencies.Input('url', 'pathname')])     #callbak pro víc stránek
@@ -1247,18 +1256,20 @@ def display_page(pathname):
     if pathname == '/twitter_sentiment':
         return twitter_sentiment
     elif pathname == '/news_sentiment':
-        return GILD_sentiment
+        return news_sentiment
     elif pathname == '/reddit_sentiment':
         return reddit_layout
     elif pathname =='/running_scripts':
         return running_scripts
     elif pathname =='/backtesting':
         return backtesting
+    elif pathname == '/backtesting_results':
+        return backtesting_results
     else:
         return index
 
 #================================================================================================================
-# -----------------------------callbacky pro backtesting---------------------------------
+#-----------------------------callbacky pro backtesting---------------------------------
 
 try:
     process
@@ -1307,7 +1318,7 @@ def run_script_onClick(n_clicks, drop_stock, strat_id, shortMa, longMa, stopLoss
 )
 def get_output_of_process(n_intervals):
     if process is not None:
-        for _ in range(15):
+        for _ in range(50):
             line = process.stdout.readline()
             line = line.decode("utf-8")
             lines.insert(0,line)
@@ -1317,8 +1328,14 @@ def get_output_of_process(n_intervals):
     dash.dependencies.Output('bt-strategy-text', 'children'),
     [dash.dependencies.Input('bt-strategy', 'value'),
      ])
-def short_ma_text(short_ma):
-    return 'Strategy number= {}'.format(short_ma)
+def strategy_is(strategy_name):
+    if strategy_name == 0:
+        strategy_name = "MA_cross_Sentiment"
+    if strategy_name == 1:
+        strategy_name = "MA_control_strategy"
+    if strategy_name == 2:
+        strategy_name = "sentiment_0_strategy"
+    return '{}'.format(strategy_name)
 
 @app.callback(
     dash.dependencies.Output('short-ma-text', 'children'),
@@ -1404,10 +1421,10 @@ def update_tweetTable(n_clicks, selected_time, selector, keyword, t_ma_long, t_m
             row_heights=[0.8, 0.2],
             )
     if "sentiment_textblob" in selector:    
-        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_textblob"],marker_color="#ff8000", mode="markers", name="Sentiment TextBlob", marker={"size":4}) #*
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_textblob"],marker_color="#ff8000", mode="markers", name="10 min Sentiment TextBlob", marker={"size":4}) #*
         fig.append_trace(scatter, 1, 1)
     if "sentiment_vader" in selector:    
-        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_vader"],marker_color="#ff0000", mode="markers", name="Sentiment Vader", marker={"size":4},) #*
+        scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_vader"],marker_color="#ff0000", mode="markers", name="10 min Sentiment Vader", marker={"size":4},) #*
         fig.append_trace(scatter, 1, 1)
     if "short_ma" in selector:
         short_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_short"],line_color="#ffff00", mode="lines", name=str(t_ma_short*10)+"min TextBlob MA")
@@ -1456,7 +1473,7 @@ def slider_twitter(drag_value):
         drag_value_datetime = datetime.datetime.fromtimestamp(drag_value/1000000000).replace(microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
     return 'Slider Value: {}'.format(drag_value_datetime)
 
-#--------------------callback pro update tabulky z MySQL tweetTable---------------------
+#--------------------callback pro update tabulky z MySQL tweetTable----------------------
 @app.callback(Output('table', 'data'),
              [Input('t-search', 'n_clicks'),
               dash.dependencies.State('t-database', 'value'),
@@ -1492,7 +1509,7 @@ def update_table(n_clicks, t_database, t_time_delta, t_sort_by, t_best, t_worst)
 #================================================================================================================
 
 
-#--------------------callback pro update tabulky z MySQL newsGILD-----------------------
+#--------------------callback pro update tabulky z MySQL news----------------------------
 @app.callback(Output('table_newsGILD', 'data'),
              [Input('news-dropdown', 'value'), #callback pro dropdown
               Input('interval-component-newsGILD', 'n_intervals')])
@@ -1502,7 +1519,7 @@ def update_table_gild(news, n_interval):
     print("news table update")
     return df.to_dict('records')
 
-#--------------------callback pro update grafu z MYSQL newsGILD-------------------------
+#--------------------callback pro update grafu z MYSQL newsG-----------------------------
 @app.callback(
     Output('chart-with-slider-news', 'figure'),
     [Input('year-slider-news', 'value'), #callback pro chart slider
@@ -1530,13 +1547,9 @@ def update_news_figure(selected_time, n_interval, keyword, selector):
         link = '[link](' +str(x) + ')'
         rows.append(link)#
     df_filtered['url'] = rows
-    df_volume_filtered = df_filtered.resample('30min').agg({'volume': np.sum})
+    df_volume_filtered = df_filtered.resample('360min').agg({'volume': np.sum})
     df_volume_filtered["epoch"] =  df_volume_filtered.index.astype(np.int64)
-    #df_volume = get_data_news(table_name).resample('720min').agg({'volume': np.sum, 'sentiment': np.mean,'sentiment_vader': np.mean})
-    #df_volume["epoch"] =  df_volume.index.astype(np.int64)
-    df_volume_filtered["MA"] = df_volume_filtered.volume.rolling(window=10).mean()
-    #df_volume_filtered = df_volume[df_volume.epoch > selected_time]
-    #df_filtered_scatter = df.tail(1000) #zobrazí posledních n-tweetů v grafu jako body*
+    df_volume_filtered["MA"] = df_volume_filtered.volume.rolling(window=4).mean()
     fig = make_subplots(rows=2, 
             cols=1, 
             shared_xaxes=True, 
@@ -1550,10 +1563,10 @@ def update_news_figure(selected_time, n_interval, keyword, selector):
         scatter = go.Scatter(x=df_filtered.index, y=df_filtered["sentiment_vader"],marker_color="#ff0000", mode="markers", name="Sentiment Vader", marker={"size":4}, text=df_filtered["title"]) #*
         fig.append_trace(scatter, 1, 1)
     if "short_ma" in selector:
-        short_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_short"],line_color="#ffff00", mode="lines", name="Short MA TextBlob")
+        short_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_short"],line_color="#ffff00", mode="lines", name="10 news MA TextBlob")
         fig.append_trace(short_ma, 1, 1)
     if "long_ma" in selector: 
-        long_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_long"], line_color="#00ffff", mode="lines", name="Long MA TextBlob")
+        long_ma = go.Scatter(x=df_filtered.index, y=df_filtered["ma_long"], line_color="#00ffff", mode="lines", name="30 news MA TextBlob")
         fig.append_trace(long_ma, 1, 1)
     if "vader_ma_short" in selector:
         vader_ma_short = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_short"], line_color="#8000ff", mode="lines", name="10 news MA Vader")
@@ -1561,9 +1574,9 @@ def update_news_figure(selected_time, n_interval, keyword, selector):
     if "vader_ma_long" in selector:    
         vader_ma_long = go.Scatter(x=df_filtered.index, y=df_filtered["vader_ma_long"], line_color="#ff007f", mode="lines", name="30 news MA Vader")          
         fig.append_trace(vader_ma_long, 1, 1)
-    volume = go.Bar(x=df_volume_filtered.index, y=df_volume_filtered["volume"], marker_color="#ff8000", name="12h Volume", text = df_volume_filtered["volume"])
+    volume = go.Bar(x=df_volume_filtered.index, y=df_volume_filtered["volume"], marker_color="#ff8000", name="6h Volume", text = df_volume_filtered["volume"])
     fig.append_trace(volume, 2, 1)
-    volume_MA = go.Scatter(x=df_volume_filtered.index, y=df_volume_filtered["MA"], fill="tozeroy", mode="none", fillcolor="rgba(255, 128, 0, 0.4)", name="Volume MA 1O")
+    volume_MA = go.Scatter(x=df_volume_filtered.index, y=df_volume_filtered["MA"], fill="tozeroy", mode="none", fillcolor="rgba(255, 128, 0, 0.6)", name="Volume 1D MA")
     fig.append_trace(volume_MA, 2, 1)
 
     fig["layout"].update(#title_text=news,
@@ -1606,14 +1619,8 @@ def update_is_it_running(n_intervals):
     data_frame_is_it_running = data_frame_is_it_running.to_dict('records')
     return data_frame_is_it_running
 
-#--------------------callback pro update wordcloudu newsGILD----------------------------
-@app.callback(Output("wordcloud_news", "src"),
-             [Input("news-dropdown", "value")])
-def update_body_image(news):
-    src = "/assets/wordcloud_"+news+".svg"
-    return src
+#--------------------callback pro update wordcloudu news--------------------------------
 
-#================================================================================================================
 @app.callback(
     Output('wordcloud_with_slider_news', 'src'),
     [Input('year-slider-news', 'value'), #callback pro chart slider
@@ -1634,14 +1641,14 @@ def update_wordcloud_news_html(selected_time, keyword):
 
     # making dict for counting frequencies
     for text in sentence.split(" "):
-        if re.match("rt|stock|gilead|a|the|an|the|to|in|for|of|or|by|with|is|on|that|be", text):
+        if re.match("rt|stock|a|the|an|the|to|in|for|of|or|by|with|is|on|that|be", text):
             continue
         val = tmpDict.get(text, 0)
         tmpDict[text.lower()] = val + 1
     for key in tmpDict:
         fullTermsDict.add(key, tmpDict[key])
 
-    wordcloud = WordCloud(height=500, width=500, background_color="black", contour_color='white', colormap="Set1").generate_from_frequencies(fullTermsDict)
+    wordcloud = WordCloud(height=500, width=500, background_color="black", contour_color='white', colormap="autumn").generate_from_frequencies(fullTermsDict)
     buf = io.BytesIO() # in-memory files
     plt.figure()
     plt.imshow(wordcloud, interpolation="bilinear")
@@ -1650,6 +1657,8 @@ def update_wordcloud_news_html(selected_time, keyword):
     data = base64.b64encode(buf.getbuffer()).decode("utf8") # encode to html elements
     plt.close()
     return "data:image/png;base64,{}".format(data)
+
+#================================================================================================================
 
 #--------------------callback pro update tabulky z MySQL redditGILD-----------------------
 @app.callback(Output('table_redditGILD', 'data'),
@@ -1803,6 +1812,26 @@ def count_row(news, n_intervals):
     p3 = " rows "
     info = "".join([p,count,p3])
     return info
+
+@app.callback(Output('backtesting-results', 'children'),
+              Input('tabs', 'value'))
+def render_content(tab):
+    
+    if tab == 'b-311-1':
+        with open('/home/stepan/stranka/backtrader/figures/newsF1j.json', 'r') as f:
+            fig = plotly.io.from_json(f.read())
+    if tab == 'b-311-2':
+        with open('/home/stepan/stranka/backtrader/figures/newsF2j.json', 'r') as f:
+            fig = plotly.io.from_json(f.read())
+
+    fig["layout"].update(
+                    margin=dict(l=65, r=0, t=0, b=0),)
+    return html.Div(children=[
+                dcc.Graph(
+                    figure = fig,
+                    style = {
+                        "height":"900px",}
+                    )])
 
 if __name__ == '__main__':
     app.run_server(debug=True, host="0.0.0.0")

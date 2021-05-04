@@ -51,7 +51,7 @@ def news(database, keywords):
                                       sort_by='publishedAt',
                                       page_size=100,
                                       page=1)
-        if len(all_articles["articles"]) == 1:
+        if len(all_articles["articles"]) == 1 or last_article_in_db == datetimeto:
             print("len == 1")
             return
 
@@ -115,7 +115,7 @@ def news_GILD(database, keywords):
                                       sort_by='publishedAt',
                                       page_size=100,
                                       page=1)
-        if len(all_articles["articles"]) == 1:
+        if len(all_articles["articles"]) == 1 or last_article_in_db == datetimeto:
             print("len == 1")
             return
 
@@ -156,20 +156,31 @@ def news_GILD(database, keywords):
             #time.sleep(0.2)
         time.sleep(2)
 
-
-news('newsAIRBUS', "Airbus")
-news('newsAMC', "AMC")
-news('newsAZN', "AZN OR AstraZeneca")
-news('newsBOEING', "Boeing")
-news('newsF', "Ford")
-news('newsNET', "Cloudflare")
-news('newsORCL', "ORCL OR Oracle")
-news('newsPFE', "PFE OR Pfizer")
-news('newsRACE', "Ferrari")
-news('newsTOYOF', "TOYOF OR Toyota")
-news_GILD('newsGILD', "GILD OR Gilead")
-
-print("duration: ", datetime.now() - begin_time)
-#while True:
-#    gild_news()
-#    time.sleep(10 000)
+#INSERT INTO running_scripts VALUES ("NewsAPI_11.py", "2020-12-01 00:01:56")
+def is_it_running():
+    script_name = "NewsAPI_11.py"
+    now = datetime.now().isoformat()
+    cursor.execute("""
+                    UPDATE 
+                        running_scripts 
+                    SET 
+                        script = %s, time = %s 
+                    WHERE 
+                        script = %s""",
+                    (script_name, now, script_name))
+    kody.cnx.commit()
+while True:
+    news('newsAIRBUS', "Airbus")
+    news('newsAMC', "AMC")
+    news('newsAZN', "AZN OR AstraZeneca")
+    news('newsBOEING', "Boeing")
+    news('newsF', "Ford")
+    news('newsNET', "Cloudflare")
+    news('newsORCL', "ORCL OR Oracle")
+    news('newsPFE', "PFE OR Pfizer")
+    news('newsRACE', "Ferrari")
+    news('newsTOYOF', "TOYOF OR Toyota")
+    news_GILD('newsGILD', "GILD OR Gilead")
+    is_it_running()
+    print("run: ",datetime.now().isoformat())
+    time.sleep(22000)

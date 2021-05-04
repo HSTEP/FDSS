@@ -55,6 +55,7 @@ else:
     # With valid amount of arguments
     strategies = [MA_cross_Sentiment, MA_control_strategy, sentiment_0_strategy]
     cerebro.addstrategy(strategies[int(cmd_params["strat_id"])], **cmd_params)
+print(cmd_params)
 # fixed number of assets to buy
 # cerebro.addsizer(bt.sizers.FixedSize, stake = stake)
 # analyzers
