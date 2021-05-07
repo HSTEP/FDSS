@@ -72,24 +72,19 @@ def bt_make_chart():
                             size=10,))
     fig.append_trace(fig_sell, 1, 1)
 
+    fig_sma1 = go.Scatter(x = df.index,
+                        y = df["sma1"].astype(float),
+                        mode = 'lines',
+                        name="Slow MA",)
+    fig.append_trace(fig_sma1, 2, 1)
     try:
-        fig_sma1 = go.Scatter(x = df.index,
-                            y = df["sma1"].astype(float),
-                            mode = 'lines',
-                            name="Slow MA",)
-        fig.append_trace(fig_sma1, 2, 1)
-
         fig_sma2 = go.Scatter(x = df.index,
                             y = df["sma2"].astype(float),
                             mode = 'lines',
                             name="Fast MA",)
         fig.append_trace(fig_sma2, 2, 1)
     except:
-        fig_sentiment = go.Scatter(x = df.index,
-                            y = df["sentiment"].astype(float),
-                            mode = 'lines',
-                            name="sentiment",)
-        fig.append_trace(fig_sentiment, 2, 1)
+        pass
 
     fig_value = go.Scatter(x = df.index,
                         y = df["value"].astype(float),
@@ -130,3 +125,4 @@ def bt_make_chart():
     #fig.show()
     #fig.write_html("stranka/backtrader/backtrader_web/backtrader_chart.html")
     return fig
+    

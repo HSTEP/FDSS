@@ -123,13 +123,13 @@ def twitter_ar(time_from, time_to, query, database):
 
 
 if __name__ == "__main__":
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z" ,"airbus", "tweetTable_AR_AB",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "amc", "tweetTable_AR_AMC",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "boeing", "tweetTable_AR_BOEING",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "ford", "tweetTable_AR_F",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "gild OR gilead", "tweetTable_AR_GILD",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "cloudflare", "tweetTable_AR_NET",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "oracle OR ORCL", "tweetTable_AR_ORCL",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "pfizer OR PFE", "tweetTable_AR_PFE",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "ferrari", "tweetTable_AR_RACE",)
-    twitter_ar("2021-04-24T12:00:00Z","2021-04-24T12:00:00Z", "toyota OR TOYOF", "tweetTable_AR_TOYOF",)
+    #twitter_ar("2021-04-24T12:00:00Z","2021-04-26T19:16:59Z" ,"airbus", "tweetTable_AR_AB",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-04T10:36:41Z", "amc", "tweetTable_AR_AMC",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-06T12:00:00Z", "boeing", "tweetTable_AR_BOEING",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-06T12:00:00Z", "ford", "tweetTable_AR_F",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-06T12:00:00Z", "gild OR gilead", "tweetTable_AR_GILD",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-06T12:00:00Z", "cloudflare", "tweetTable_AR_NET",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-06T12:00:00Z", "oracle OR ORCL", "tweetTable_AR_ORCL",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-06T12:00:00Z", "pfizer OR PFE", "tweetTable_AR_PFE",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-06T12:00:00Z", "ferrari", "tweetTable_AR_RACE",)
+    twitter_ar("2021-04-24T12:00:00Z","2021-05-06T12:00:00Z", "toyota OR TOYOF", "tweetTable_AR_TOYOF",)

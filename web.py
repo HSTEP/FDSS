@@ -769,7 +769,7 @@ reddit_layout = html.Div(
         id='year-slider-reddit',
         min=132541261000000000,
         max=time.time()*10**9,
-        value=time.time()*10**9 - 2592000*10**9,
+        value=(datetime.datetime.now() - relativedelta(days=20)).timestamp()*10**9,
         step=86400*10**9,
         ),
     dcc.Interval(
@@ -897,7 +897,7 @@ reddit_layout = html.Div(
             #"display": "inline-block"
             }),
     dcc.Interval(
-        id='interval-component-redditGILD',
+        id='interval-component-reddit',
         interval=70*1000, # in milliseconds
         n_intervals=0
     )
@@ -1237,17 +1237,18 @@ running_scripts = html.Div(
 ])
 
 backtesting_results = html.Div([
-    dcc.Tabs(id='tabs', value='b-311-1', children=[
-        dcc.Tab(label='Strategie MA sentimentu opt. 1',  value = 'b-311-1', selected_style={"font-weight": "bold"}),
-        dcc.Tab(label='Strategie MA sentimentu opt. 2',  value = 'b-311-2', selected_style={"font-weight": "bold"}),
-        dcc.Tab(label='3.1.3 Druhá kontrolní strategie',  value = 'b-313', selected_style={"font-weight": "bold"}),
+    dcc.Tabs(id='tabs', value='b-321-1', children=[
+        dcc.Tab(label='Strategie MA sentimentu opt. 1',  value = 'b-321-1', selected_style={"font-weight": "bold"}),
+        dcc.Tab(label='Strategie MA sentimentu opt. 2',  value = 'b-321-2', selected_style={"font-weight": "bold"}),
+        dcc.Tab(label='Strategie MA sentimentu multistocks',  value = 'b-321-3', selected_style={"font-weight": "bold"}),
     ],colors={
         "border": "white",
         "background": "#f1b450"
         }
     ),
     dcc.Loading(color=colors["button_text"], children=[html.Div(id='backtesting-results')]),
-])
+],style = {
+    "margin-left" : "65px"})
 
 #--------------------callback pro otevření cesty k jiné Dash stránce--------------------
 @app.callback(dash.dependencies.Output('page-content', 'children'),
@@ -1661,9 +1662,12 @@ def update_wordcloud_news_html(selected_time, keyword):
 #================================================================================================================
 
 #--------------------callback pro update tabulky z MySQL redditGILD-----------------------
-@app.callback(Output('table_redditGILD', 'data'),
-             [Input('reddit-dropdown', 'value'), #callback pro dropdown
-              Input('interval-component-redditGILD', 'n_intervals')])
+@app.callback(
+        Output('table_redditGILD', 'data'),
+    [
+        Input('reddit-dropdown', 'value'), #callback pro dropdown
+        Input('interval-component-reddit', 'n_intervals')
+    ])
 def update_table_reddit(reddit, n_interval):
     df = get_data_reddit(reddit).sort_index(ascending=False)#nejdřív seřadím pro default sort v datatablu
     df = df.reset_index().rename(columns={df.index.name:'time'}) #protože index nejde zobrazit v datatablu
@@ -1817,15 +1821,17 @@ def count_row(news, n_intervals):
               Input('tabs', 'value'))
 def render_content(tab):
     
-    if tab == 'b-311-1':
+    if tab == 'b-321-1':
         with open('/home/stepan/stranka/backtrader/figures/newsF1j.json', 'r') as f:
             fig = plotly.io.from_json(f.read())
-    if tab == 'b-311-2':
+    if tab == 'b-321-2':
         with open('/home/stepan/stranka/backtrader/figures/newsF2j.json', 'r') as f:
             fig = plotly.io.from_json(f.read())
-
+    if tab == 'b-321-3':
+        with open('/home/stepan/stranka/backtrader/figures/allF_multistocks_j.json', 'r') as f:
+            fig = plotly.io.from_json(f.read())
     fig["layout"].update(
-                    margin=dict(l=65, r=0, t=0, b=0),)
+                    margin=dict(l=0, r=0, t=40, b=0),)
     return html.Div(children=[
                 dcc.Graph(
                     figure = fig,

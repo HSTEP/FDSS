@@ -17,7 +17,6 @@ time_from = dt.datetime.now() - relativedelta(months=1)
 time_from = time_from.replace(microsecond=0).isoformat()
 time_to = dt.datetime.now().replace(microsecond=0).isoformat()
 
-begin_time = datetime.now()
 cursor=kody.cnx.cursor()
 #all_articles = newsapi.get_everything(qintitle='pfe OR pfizer',   #(ethereum OR litecoin) NOT bitcoin #qintitle nebo q - všude
 #                                      #sources='associated-press, bbc-news, bloomberg, business-insider, cbc-news, cnn, engadget, financial-post, fortune, fox-news, google-news, hacker-news, recode, reuters, techcrunch, the-next-web, the-verge, the-wall-street-journal, the-washington-post, the-washington-times, time, wired',
@@ -170,6 +169,7 @@ def is_it_running():
                     (script_name, now, script_name))
     kody.cnx.commit()
 while True:
+    begin_time = datetime.now()
     news('newsAIRBUS', "Airbus")
     news('newsAMC', "AMC")
     news('newsAZN', "AZN OR AstraZeneca")
@@ -182,5 +182,5 @@ while True:
     news('newsTOYOF', "TOYOF OR Toyota")
     news_GILD('newsGILD', "GILD OR Gilead")
     is_it_running()
-    print("run: ",datetime.now().isoformat())
+    print("duration: ", datetime.now() - begin_time)
     time.sleep(22000)
