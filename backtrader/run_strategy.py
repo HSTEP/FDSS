@@ -10,23 +10,6 @@ stake = 1  # number of assets to buy
 
 time = datetime.now().isoformat()
 cerebro = bt.Cerebro(preload=True, runonce=True, quicknotify=True)
-#       ``optreturn`` (default: ``True``)
-#
-#       If ``True`` the optimization results will not be full ``Strategy``
-#       objects (and all *datas*, *indicators*, *observers* ...) but and object
-#       with the following attributes (same as in ``Strategy``):
-#
-#         - ``params`` (or ``p``) the strategy had for the execution
-#         - ``analyzers`` the strategy has executed
-#
-#       In most occassions, only the *analyzers* and with which *params* are
-#       the things needed to evaluate a the performance of a strategy. If
-#       detailed analysis of the generated values for (for example)
-#       *indicators* is needed, turn this off
-#
-#       The tests show a ``13% - 15%`` improvement in execution time. Combined
-#       with ``optdatas`` the total gain increases to a total speed-up of
-#       ``32%`` in an optimization run.
 
 cerebro.broker.setcash(startcash)
 
@@ -50,7 +33,7 @@ data = GenericCSV_X(
     sentiment=6,
     timeframe=bt.TimeFrame.Minutes,
 )
-cerebro.broker.setcommission(commission=0.00)
+cerebro.broker.setcommission(commission=0.002)
 # data
 cerebro.adddata(data)
 # add observer
@@ -92,7 +75,3 @@ except KeyError:
     print("Analyzer Error")
     
 #cerebro.plot(style="candle", volume= False)[0][0]
-
-# mpld3.save_html(fig, 'backtrader/savefig_TEST.html')
-# py.plot_mpl(fig).show()
-# print(time, datetime.now().isoformat())

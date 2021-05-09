@@ -57,10 +57,7 @@ def resample_t():
     dataframe_r_twitter("tweetTable_AR_PFE", "10min", "tweetTable_AR_PFE_r")
     dataframe_r_twitter("tweetTable_AR_RACE", "10min", "tweetTable_AR_RACE_r")
     dataframe_r_twitter("tweetTable_AR_TOYOF", "10min", "tweetTable_AR_TOYOF_r")
-    return
-
-def resample_t_test():
-    dataframe_r_twitter("tweetTable_AR_NET", "10min", "tweetTable_AR_NET_r")
+    dataframe_r_twitter("tweetTable_AR_AZN", "10min", "tweetTable_AR_AZN_r")
     return
 
 resample_t()

@@ -5,9 +5,9 @@ import csv
 
 class MA_cross_Sentiment(bt.Strategy):
     params = dict(
-        period_long=187,
-        period_short=43,
-        stop_loss= 1,
+        period_long=238,
+        period_short=42,
+        stop_loss= 2,
         take_profit=8
     )
 
@@ -164,9 +164,9 @@ class MA_cross_Sentiment(bt.Strategy):
 
 class MA_controll_strategy(bt.Strategy):
     params = dict(
-        period_long=196,
-        period_short=21,
-        stop_loss= 1,
+        period_long=238,
+        period_short=42,
+        stop_loss= 2,
         take_profit=8
     )
 
@@ -178,10 +178,10 @@ class MA_controll_strategy(bt.Strategy):
     def __init__(self):
         # Vytváření klouzavého průměru z ceny
         self.ema200 = bt.indicators.SimpleMovingAverage(
-            (self.datas[0].close), period=233, plotname="SMA_long_p"
+            (self.datas[0].close), period=self.params.period_long, plotname="SMA_long_p"
         )
         self.ema50 = bt.indicators.SimpleMovingAverage(
-            (self.datas[0].close), period=21, plotname="SMA_short_p"
+            (self.datas[0].close), period=self.params.period_short, plotname="SMA_short_p"
         )
 
         # Vytváření klouzavého průměru z hodoty sentimentu
@@ -324,8 +324,8 @@ class MA_controll_strategy(bt.Strategy):
 
 class sentiment_0_strategy(bt.Strategy):
     params = dict(
-        period_short=1,
-        stop_loss= 5,
+        period_short=19,
+        stop_loss= 9,
         take_profit=10
     )
 

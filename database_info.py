@@ -36,10 +36,10 @@ def database_info(db_name_contains, column_name):
     print("-"*100)
     #df.to_csv("database_info.csv")
 
-    
-print("-"*100)
+
 print('{:<23s}{:>8s}{:>25s}{:>25s}{:>14s}'.format("table_name",str("count"),"time_from", "time_to", str("Size [MB]")))
 print("-"*100)
-database_info("news", "published")
-database_info("tweetTable_AR", "created_at")
+#database_info("news", "published")
+#database_info("tweetTable_AR", "created_at")
+database_info("reddit", "time")
 print("-"*100)

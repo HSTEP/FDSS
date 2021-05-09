@@ -48,7 +48,7 @@ def get_bt_data_news(ticker, database, time_from,interval):
     data.index = data.index.tz_convert(tz=None)
     data = data.join(bt_data_sentiment_ffill_news(database, time_from, interval))
     data[["Open","High","Low", "Close", "sentiment", "sentiment_vader"]].to_csv("data_news/news"+ticker+".csv")
-    print(data)
+    #print(data)
     #fig = px.line(x=data.index, y=data["sentiment"])
     #fig.show()
     return
@@ -92,6 +92,7 @@ def get_bt_data_twitter(ticker, database, time_from,interval):
     stock = yf.Ticker(ticker)
     data = stock.history(start=time_from, interval=interval)
     # remove timezone:
+    print(data)
     data.index = data.index.tz_convert(tz="UTC")
     data.index = data.index.tz_convert(tz=None)
     data = data.join(bt_data_sentiment_ffill_twitter(database, time_from, interval))
@@ -101,38 +102,43 @@ def get_bt_data_twitter(ticker, database, time_from,interval):
     #fig.show()
     return
 
-def get_data_news():
-    #get_bt_data_news("GILD", "newsGILD", "2021-03-07", "2m")
-    #get_bt_data_news("AIR", "newsAIRBUS", "2021-03-07", "2m")
-    #get_bt_data_news("AMC", "newsAMC", "2021-03-07", "2m")
-    #get_bt_data_news("AZN", "newsAZN", "2021-03-07", "2m")
-    #get_bt_data_news("BA", "newsBOEING", "2021-03-07", "2m")
-    #get_bt_data_news("F", "newsF", "2021-03-07", "2m")
-    #get_bt_data_news("NET", "newsNET", "2021-03-07", "2m")
-    #get_bt_data_news("ORCL", "newsORCL", "2021-03-07", "2m")
-    #get_bt_data_news("PFE", "newsPFE", "2021-03-07", "2m")
-    #get_bt_data_news("RACE", "newsRACE", "2021-03-07", "2m")
-    get_bt_data_news("TM", "newsTOYOF", "2021-03-08", "2m")
+# def get_data_news():
+#     get_bt_data_news("GILD", "newsGILD", "2021-03-10", "5m")
+#     get_bt_data_news("AIR", "newsAIRBUS", "2021-03-10", "5m")
+#     get_bt_data_news("AMC", "newsAMC", "2021-03-10", "5m")
+#     get_bt_data_news("AZN", "newsAZN", "2021-03-10", "5m")
+#     get_bt_data_news("BA", "newsBOEING", "2021-03-10", "5m")
+#     get_bt_data_news("F", "newsF", "2021-03-10", "5m")
+#     get_bt_data_news("NET", "newsNET", "2021-03-10", "5m")
+#     get_bt_data_news("ORCL", "newsORCL", "2021-03-10", "5m")
+#     get_bt_data_news("PFE", "newsPFE", "2021-03-10", "5m")
+#     get_bt_data_news("RACE", "newsRACE", "2021-03-10", "5m")
+#     get_bt_data_news("TM", "newsTOYOF", "2021-03-10", "5m")
+#     return
+
+
+def get_data_twitter():
+    get_bt_data_twitter("AIR", "tweetTable_AR_AB", "2021-03-10", "5m")
+    get_bt_data_twitter("AMC", "tweetTable_AR_AMC", "2021-03-10", "5m")
+    get_bt_data_twitter("AZN", "tweetTable_AR_AMC", "2021-03-10", "5m")
+    get_bt_data_twitter("GILD", "tweetTable_AR_GILD", "2021-03-10", "5m")
+    get_bt_data_twitter("BA", "tweetTable_AR_BOEING", "2021-03-10", "5m")
+    get_bt_data_twitter("F", "tweetTable_AR_F", "2021-03-10", "5m")
+    get_bt_data_twitter("NET", "tweetTable_AR_NET", "2021-03-10", "5m")
+    get_bt_data_twitter("ORCL", "tweetTable_AR_ORCL", "2021-03-10", "5m")
+    get_bt_data_twitter("PFE", "tweetTable_AR_PFE", "2021-03-10", "5m")
+    get_bt_data_twitter("RACE", "tweetTable_AR_RACE", "2021-03-10", "5m")
+    get_bt_data_twitter("TM", "tweetTable_AR_TOYOF", "2021-03-10", "5m")
     return
 
+def get_data_test():
+    get_bt_data_twitter("TM", "tweetTable_AR_TOYOF", "2021-03-10", "5m")
+    return
 
-# def get_data_twitter():
-#     get_bt_data_twitter("AIR", "tweetTable_AR_AB", "2021-02-24", "2m")
-#     get_bt_data_twitter("AMC", "tweetTable_AR_AMC", "2021-02-24", "2m")
-#     get_bt_data_twitter("GILD", "tweetTable_AR_GILD", "2021-02-24", "2m")
-#     get_bt_data_twitter("BA", "tweetTable_AR_BOEING", "2021-02-24", "2m")
-#     get_bt_data_twitter("F", "tweetTable_AR_F", "2021-02-24", "2m")
-#     get_bt_data_twitter("NET", "tweetTable_AR_NET", "2021-02-24", "2m")
-#     get_bt_data_twitter("ORCL", "tweetTable_AR_ORCL", "2021-02-24", "2m")
-#     get_bt_data_twitter("PFE", "tweetTable_AR_PFE", "2021-02-24", "2m")
-#     get_bt_data_twitter("RACE", "tweetTable_AR_RACE", "2021-02-24", "2m")
-#     get_bt_data_twitter("TOYOF", "tweetTable_AR_TOYOF", "2021-02-24", "2m")
-#     return
-# 
-# def get_data_test():
-#     get_bt_data_twitter("NET", "tweetTable_AR_NET", "2021-03-05", "2m")
-#     return
+# get_data_news()
+get_data_twitter()
 
-get_data_news()
+#get_data_test()
+
 print("duration: ", datetime.now() - begin_time)
 #bt_data("NET", "30m")[["Open","High","Low", "Close", "sentiment", "sentiment_vader"]].to_csv('csv_TEST.csv')

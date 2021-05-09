@@ -8,8 +8,7 @@ import kody
 from tqdm import tqdm
 import praw
 import mysql
-
-begin_time = datetime.now()
+import time
 
 def reddit_comments(sub_reddit, query, database):
     cursor=kody.cnx.cursor()
@@ -17,7 +16,7 @@ def reddit_comments(sub_reddit, query, database):
     subreddit = reddit.subreddit(sub_reddit)
 
     #time_filter – Can be one of: all, day, hour, month, week, year (default: all).
-    top_subreddit = subreddit.search(query=query, sort="new", time_filter="year", limit=None) #limited to 1000 results
+    top_subreddit = subreddit.search(query=query, sort="new", time_filter="hour", limit=None) #limited to 1000 results, Time_Filter -> Can be one of: all, day, hour, month, week, year (default: all)
 
     analyser = SentimentIntensityAnalyzer()
     print("start: ", datetime.now().isoformat())
@@ -101,10 +100,32 @@ searches = [
     ["news", "Gilead", "redditGILD"],
     ["news", "Remdesivir", "redditGILD"],
 ]
+
+def is_it_running():
+    # INSERT INTO `running_scripts`(`script`, `time`) VALUES ("reddit.py", "2021-05-08 14:16:08")
+    cursor=kody.cnx.cursor()
+    script_name = "reddit.py"
+    now = datetime.now().isoformat()
+    cursor.execute("""
+                    UPDATE 
+                        running_scripts 
+                    SET 
+                        script = %s, time = %s 
+                    WHERE 
+                        script = %s""",
+                    (script_name, now, script_name))
+    kody.cnx.commit()
+
 def get_reddit():
     for sub_reddit, query, database in searches:
         print(sub_reddit, query)
         reddit_comments(sub_reddit, query, database)
 
-get_reddit()
-print("duration: ", datetime.now() - begin_time)
+while True:
+    begin_time = datetime.now()
+
+    get_reddit()
+    is_it_running()
+
+    print("duration: ", datetime.now() - begin_time)
+    time.sleep(3600)

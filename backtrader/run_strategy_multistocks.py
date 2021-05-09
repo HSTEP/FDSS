@@ -1,7 +1,9 @@
 import backtrader as bt
-from strategy import MA_cross_Sentiment
+from strategy import MA_cross_Sentiment, sentiment_0_strategy, MA_controll_strategy
 import os
+from datetime import datetime
 
+begin_time = datetime.now()
 
 class GenericCSV_X(bt.feeds.GenericCSVData):
     # přidání dat sentimentu pro vytváření MA
@@ -28,23 +30,6 @@ def backtrade_stock(datapath, file_name):
     stake = 1  # number of assets to buy
 
     cerebro = bt.Cerebro(preload=True, runonce=True, quicknotify=True)
-    #       ``optreturn`` (default: ``True``)
-    #
-    #       If ``True`` the optimization results will not be full ``Strategy``
-    #       objects (and all *datas*, *indicators*, *observers* ...) but and object
-    #       with the following attributes (same as in ``Strategy``):
-    #
-    #         - ``params`` (or ``p``) the strategy had for the execution
-    #         - ``analyzers`` the strategy has executed
-    #
-    #       In most occassions, only the *analyzers* and with which *params* are
-    #       the things needed to evaluate a the performance of a strategy. If
-    #       detailed analysis of the generated values for (for example)
-    #       *indicators* is needed, turn this off
-    #
-    #       The tests show a ``13% - 15%`` improvement in execution time. Combined
-    #       with ``optdatas`` the total gain increases to a total speed-up of
-    #       ``32%`` in an optimization run.
 
     cerebro.broker.setcash(startcash)
 
@@ -85,8 +70,6 @@ def backtrade_stock(datapath, file_name):
     except KeyError:
         print("Analyzer Error")
 
-    #cerebro.plot(tight=False, style="candle", volume= False)
-
 path = "stocks_data/"
 filepaths = os.listdir(path)
 
@@ -111,19 +94,4 @@ for key in a_dict:
 for key in a_dict:
     backtrade_stock(key,a_dict[key])
 
-# datapaths = ["csv_AIR.csv", 
-#             "csv_AMC.csv",
-#             "csv_AZN.csv",
-#             "csv_BA.csv", 
-#             "csv_F.csv",
-#             "csv_NET.csv", 
-#             "csv_ORCL.csv",
-#             "csv_PFE.csv", 
-#             "csv_RACE.csv",
-#             "csv_TOYOF.csv",
-#             ]
-
-#for path in datapaths:
-#    backtrade_stock(path)
-
-# print(time, datetime.now().isoformat())
+print("duration: ", datetime.now() - begin_time)

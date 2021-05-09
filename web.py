@@ -151,6 +151,7 @@ twitter_sentiment = html.Div(
                 options=[
                     {'label': 'Airbus', 'value': 'tweetTable_AR_AB_r'},
                     {'label': 'AMC', 'value': 'tweetTable_AR_AMC_r'},
+                    {'label': 'AstraZeneca OR AZN', 'value': 'tweetTable_AR_AZN_r'},
                     {'label': 'Boeing', 'value': 'tweetTable_AR_BOEING_r'},
                     {'label': 'Ford', 'value': 'tweetTable_AR_F_r'},
                     {'label': 'Gilead OR GILD', 'value': 'tweetTable_AR_GILD_r'},
@@ -160,7 +161,7 @@ twitter_sentiment = html.Div(
                     {'label': 'Ferrari', 'value': 'tweetTable_AR_RACE_r'},
                     {'label': 'Toyota OR TOYOF', 'value': 'tweetTable_AR_TOYOF_r'}
                 ],
-                value='tweetTable_AR_NET_r',
+                value='tweetTable_AR_AB_r',
                 clearable=False,
                 style = {
                         'width': '300px',
@@ -930,7 +931,7 @@ backtesting = html.Div(
                     {'label': 'News Oracle or ORCL', 'value': '/home/stepan/stranka/backtrader/data_news/newsORCL.csv'},
                     {'label': 'News PFE OR Pfizer', 'value': '/home/stepan/stranka/backtrader/data_news/newsPFE.csv'},
                     {'label': 'News Ferrari', 'value': '/home/stepan/stranka/backtrader/data_news/newsRACE.csv'},
-                    {'label': 'News Toyota', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterTOYOF.csv'},
+                    {'label': 'News Toyota', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterTM.csv'},
                     {'label': 'Tweets Airbus', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterAIR.csv'},
                     {'label': 'Tweets AMC', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterAMC.csv'},
                     {'label': 'Tweets Boeing', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterBA.csv'},
@@ -940,7 +941,7 @@ backtesting = html.Div(
                     {'label': 'Tweets Oracle or ORCL', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterORCL.csv'},
                     {'label': 'Tweets PFE OR Pfizer', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterPFE.csv'},
                     {'label': 'Tweets Ferrari', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterRACE.csv'},
-                    {'label': 'Tweets Toyota', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterTOYOF.csv'},
+                    {'label': 'Tweets Toyota', 'value': '/home/stepan/stranka/backtrader/data_twitter/twitterTM.csv'},
                 ],
                 value='/home/stepan/stranka/backtrader/data_news/newsNET.csv',
                 clearable=False,
@@ -1239,8 +1240,11 @@ running_scripts = html.Div(
 backtesting_results = html.Div([
     dcc.Tabs(id='tabs', value='b-321-1', children=[
         dcc.Tab(label='Strategie MA sentimentu opt. 1',  value = 'b-321-1', selected_style={"font-weight": "bold"}),
-        dcc.Tab(label='Strategie MA sentimentu opt. 2',  value = 'b-321-2', selected_style={"font-weight": "bold"}),
         dcc.Tab(label='Strategie MA sentimentu multistocks',  value = 'b-321-3', selected_style={"font-weight": "bold"}),
+        dcc.Tab(label='Strategie sentiment 0 opt. 1',  value = 'b-322-1', selected_style={"font-weight": "bold"}),
+        dcc.Tab(label='Strategie sentiment 0 multistocks',  value = 'b-322-2', selected_style={"font-weight": "bold"}),
+        dcc.Tab(label='Druhá kontrolní strategie opt. 1',  value = 'b-323-1', selected_style={"font-weight": "bold"}),
+        dcc.Tab(label='Druhá kontrolní strategie multistocks',  value = 'b-323-2', selected_style={"font-weight": "bold"}),
     ],colors={
         "border": "white",
         "background": "#f1b450"
@@ -1822,14 +1826,24 @@ def count_row(news, n_intervals):
 def render_content(tab):
     
     if tab == 'b-321-1':
-        with open('/home/stepan/stranka/backtrader/figures/newsF1j.json', 'r') as f:
-            fig = plotly.io.from_json(f.read())
-    if tab == 'b-321-2':
-        with open('/home/stepan/stranka/backtrader/figures/newsF2j.json', 'r') as f:
+        with open('/home/stepan/stranka/backtrader/figures/newsF12.json', 'r') as f:
             fig = plotly.io.from_json(f.read())
     if tab == 'b-321-3':
-        with open('/home/stepan/stranka/backtrader/figures/allF_multistocks_j.json', 'r') as f:
+        with open('/home/stepan/stranka/backtrader/figures/newsF12m.json', 'r') as f:
             fig = plotly.io.from_json(f.read())
+    if tab == 'b-322-1':
+        with open('/home/stepan/stranka/backtrader/figures/news0G1j.json', 'r') as f:
+            fig = plotly.io.from_json(f.read())
+    if tab == 'b-322-2':
+        with open('/home/stepan/stranka/backtrader/figures/twitter0m.json', 'r') as f:
+            fig = plotly.io.from_json(f.read())
+    if tab == 'b-323-1':
+        with open('/home/stepan/stranka/backtrader/figures/twitterAIR1.json', 'r') as f:
+            fig = plotly.io.from_json(f.read())
+    if tab == 'b-323-2':
+        with open('/home/stepan/stranka/backtrader/figures/twitterAIR1m.json', 'r') as f:
+            fig = plotly.io.from_json(f.read())
+
     fig["layout"].update(
                     margin=dict(l=0, r=0, t=40, b=0),)
     return html.Div(children=[

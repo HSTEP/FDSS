@@ -7,13 +7,15 @@ import plotly.graph_objects as go
 
 dfs = []
 
-#filepaths = ["/Users/stepan/OneDrive/Diplomka/python/backtrader/csv_multistocks/" + path for path in os.listdir(path)]
-
 path = "csv_multistocks/"
 filepaths = os.listdir(path)
 
 for file in filepaths:
-    with open("csv_multistocks/"+file) as f:
+    #print(file)
+    if "csv" not in file:
+        continue
+
+    with open(path+file, encoding="utf-8") as f:
         reader = csv.reader(f, delimiter=",")
         rows = []
         reader.__next__()  # Skip first line
@@ -24,18 +26,62 @@ for file in filepaths:
 
         df = pd.DataFrame(rows[1:], columns=rows[0])  # [start:stop:step]
         df = df.set_index("datetime")
-        df.name = file[4:-4]
+        df.name = os.path.splitext(os.path.basename(file))[0]
         dfs.append(df)
+        
         #print(df)
 
 def final_value_to_csv():
     totalvalue= []
     for value in dfs:
-        totalval = value["value"].tail(1)
+        totalval = pd.DataFrame(columns=["Data akcie", "Konečná hodnota"])
+        totalval["Konečná hodnota"] = value["value"].tail(1)
+        totalval["Data akcie"] = value.name
+        totalval = totalval.reset_index()
+        totalval = totalval.drop("datetime", 1)
+        totalval = totalval.set_index("Data akcie")
         totalvalue.append(totalval)
     totalvalue = pd.concat(totalvalue)
-    #totalvalue.to_csv("totalvalue.csv")
-    totalvalue_ok = pd.read_csv("totalvalue.csv")
+
+    dch= []
+    for ch in dfs:
+        dchf = pd.DataFrame()
+        dchf["Počáteční cena akcie"] = ch["close"].head(1)
+        dchf["Data akcie"] = ch.name
+        dchf = dchf.reset_index()
+        dchf = dchf.drop("datetime", 1)
+        dchf = dchf.set_index("Data akcie")
+        dch.append(dchf)
+    dch = pd.concat(dch)
+
+    dct= []
+    for ch in dfs:
+        dctf = pd.DataFrame()
+        dctf["Konečná cena akcie"] = ch["close"].tail(1)
+        dctf["Data akcie"] = ch.name
+        dctf = dctf.reset_index()
+        dctf = dctf.drop("datetime", 1)
+        dctf = dctf.set_index("Data akcie")
+        dct.append(dctf)
+    dct = pd.concat(dct)
+
+    totalvalue["Počáteční cena akcie"] = dch["Počáteční cena akcie"].astype("float").round(decimals=6)
+    totalvalue["Konečná cena akcie"] = dct["Konečná cena akcie"].astype("float").round(decimals=6)
+
+    vstupní_poplatek = totalvalue["Konečná cena akcie"].astype("float").sum() * 0.002
+    poplatek_za_ukončení = totalvalue["Počáteční cena akcie"].astype("float").sum() * 0.002
+    poplatky = vstupní_poplatek + poplatek_za_ukončení
+
+    khu_s = (totalvalue["Konečná hodnota"].astype("float").sum() - 11000).round(decimals=6)
+    khu_bah = (totalvalue["Konečná cena akcie"].astype("float").sum() - totalvalue["Počáteční cena akcie"].astype("float").sum()).round(decimals=6)
+    print("-"*100)
+    print(totalvalue.sort_values(by="Konečná hodnota", ascending=False))
+    print("-"*100)
+    print("Součet konečných hodnot= ", khu_s)
+    print("Konečná hodnota portfolia při použití strategie Buy and Hold= ", khu_bah - poplatky)
+    print("-"*100)
+
+    #totalvalue.to_csv("backtrader/totalvalue.csv")
     return
 
 def mustistocks_value_chart():
@@ -60,14 +106,17 @@ def mustistocks_value_chart():
             #t=0
         ),
     paper_bgcolor="white",
-    )
-    fig.write_image("figures/test.png", scale=3)
-    fig.write_html("figures/test.html")
+    )   
+    fig.update_xaxes(
+    rangebreaks=[
+        {'pattern': 'day of week', 'bounds': [6, 1]},
+        {'pattern': 'hour', 'bounds':[21,13]}
+    ])
+    fig.show()
+    plotly.io.write_json(fig, "backtrader/figures/twitterAIR1mm.json")
+    #fig.write_image("backtrader/figures/test.png", scale=3)
+    #fig.write_html("backtrader/figures/newsF2_multistocsk.html")
     return
 
+final_value_to_csv()
 mustistocks_value_chart()
-
-# print(totalvalue_ok.index)
-# fig = go.Figure()
-# fig.add_trace(go.Scatter(y=totalvalue_ok["value"],mode="lines"))
-# fig.show()
